@@ -1,6 +1,7 @@
 package main
 
 type Kit struct {
+	ID        int64    `json:"id"`
 	Parts     []Part   `json:"parts"`
 	Name      string   `json:"name"`
 	Schematic string   `json:"schematics"`
