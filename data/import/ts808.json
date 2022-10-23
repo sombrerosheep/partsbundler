@@ -1,0 +1,45 @@
+{
+  "name": "TS-808",
+  "parts": [
+    {
+      "kind": "Resistor",
+      "name": "2.2 M"
+    },
+    {
+      "kind": "Resistor",
+      "name": "2k"
+    },
+    {
+      "kind": "Capacitor",
+      "name": "47nf"
+    },
+    {
+      "kind": "Capacitor",
+      "name": "1500pf"
+    },
+    {
+      "kind": "IC",
+      "name": "TL072"
+    },
+    {
+      "kind": "IC",
+      "name": "CD4066"
+    },
+    {
+      "kind": "Transistor",
+      "name": "2N3904"
+    },
+    {
+      "kind": "Diode",
+      "name": "1N5817"
+    },
+    {
+      "kind": "Potentiometer",
+      "name": "10k"
+    },
+    {
+      "kind": "Switch",
+      "name": "2P4T Rotary"
+    }
+  ]
+}
