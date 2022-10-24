@@ -13,7 +13,7 @@ type Storage interface {
 
 	// Parts
 	GetPart(int64) (Part, error)
-	PutPart(Part) (Part, error)
+	AddPart(Part) (Part, error)
 	UpdatePart(Part) (Part, error)
 	DeletePart(int64) error
 
@@ -22,4 +22,7 @@ type Storage interface {
 	PutKit(Kit) (Kit, error)
 	UpdateKit(Kit) (Kit, error)
 	DeleteKit(int64) error
+	GetKitParts(int64) ([]Part, error)
+	AddPartToKit(int64, int64) error
+	RemovePartFromKit(int64, int64) error
 }

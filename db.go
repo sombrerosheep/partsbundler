@@ -23,51 +23,31 @@ func (d *SqlLiteDb) Connect(filePath string) error {
 }
 
 // Links
-func GetLinksForPart(int64) ([]Link, error) {
+func (d *SqlLiteDb) GetLinksForPart(int64) ([]Link, error) {
 	return nil, nil
 }
 
-func GetLinksForKit(int64) ([]Link, error) {
+func (d *SqlLiteDb) GetLinksForKit(int64) ([]Link, error) {
 	return nil, nil
 }
 
-func AddLinkToPart(string) (Link, error) {
+func (d *SqlLiteDb) AddLinkToPart(string) (Link, error) {
 	return Link{}, nil
 }
 
-func AddLinkToKit(string) (Link, error) {
+func (d *SqlLiteDb) AddLinkToKit(string) (Link, error) {
 	return Link{}, nil
 }
 
+func (d *SqlLiteDb) RemoveLinkFromPart(int64, int64) error {
+	return nil
+}
+
+func (d *SqlLiteDb) RemoveLinkFromKit(int64, int64) error {
+	return nil
+}
 
 // parts
-func (d *SqlLiteDb) GetLinksForPart(partID int64) ([]string, error) {
-	const stmt string = `
-		select * from partlinks
-		where partId = ?
-	`
-	var links = []string{}
-
-	rows, err := d.db.Query(stmt, partID)
-	if err != nil {
-		return links, err
-	}
-
-	defer rows.Close()
-
-	for rows.Next() {
-		var link string
-		err := rows.Scan(nil, &link)
-		if err != nil {
-			return links, err
-		}
-
-		links = append(links, link)
-	}
-
-	return links, nil
-}
-
 func (d *SqlLiteDb) GetPart(partID int64) (Part, error) {
 	const stmt string = "SELECT id, kind, name from parts where id = ? limit 1;"
 	var part = Part{}
@@ -83,7 +63,7 @@ func (d *SqlLiteDb) GetPart(partID int64) (Part, error) {
 	return Part{}, nil
 }
 
-func (d *SqlLiteDb) PutPart(p Part) (Part, error) {
+func (d *SqlLiteDb) AddPart(p Part) (Part, error) {
 	const stmt string = `
 		insert into parts(kind, name)
 		values(?, ?)
@@ -157,18 +137,31 @@ func (d *SqlLiteDb) DeletePart(partID int64) error {
 }
 
 // kit
-func GetKit(int64) (Kit, error) {
+func (d *SqlLiteDb) GetKit(int64) (Kit, error) {
 	return Kit{}, nil
 }
 
-func PutKit(Kit) (Kit, error) {
+func (d *SqlLiteDb) PutKit(Kit) (Kit, error) {
 	return Kit{}, nil
 }
 
-func UpdateKit(Kit) (Kit, error) {
+func (d *SqlLiteDb) UpdateKit(Kit) (Kit, error) {
 	return Kit{}, nil
 }
 
-func DeleteKit(int64) error {
+func (d *SqlLiteDb) DeleteKit(int64) error {
 	return nil
+}
+
+func (d *SqlLiteDb) GetKitParts(kitID uint64) ([]Part, error) {
+
+	return []Part{}, nil
+}
+
+func (d *SqlLiteDb) AddPartToKit(p Part) (Part, error) {
+	return p, nil
+}
+
+func (d *SqlLiteDb) RemovePartFromKit(p Part) (Part, error) {
+	return p, nil
 }
