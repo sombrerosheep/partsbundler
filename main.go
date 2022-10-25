@@ -4,6 +4,11 @@ import (
 	"fmt"
 )
 
+var stor Storage
+
 func main() {
-	fmt.Println("Hello");
+	fmt.Println("Hello")
+
+	db := SqlLiteDb{DBFilePath: "./data/test.db"}
+	stor = &db
 }

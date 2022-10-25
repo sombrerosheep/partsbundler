@@ -22,8 +22,8 @@ type Storage interface {
 	AddKit(Kit) (Kit, error)
 	UpdateKit(Kit) (Kit, error)
 	DeleteKit(int64) error
-	GetKitParts(int64) ([]Part, error)
-	AddPartToKit(int64, int64) error
+	GetKitParts(int64) ([]KitPart, error)
+	AddPartToKit(int64, int64, uint64) error
 	SetPartQuantityForKit(int64, uint64, int64) error
 	RemovePartFromKit(int64, int64) error
 }

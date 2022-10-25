@@ -8,13 +8,14 @@ import (
 )
 
 type SqlLiteDb struct {
-	db *sql.DB
+	db         *sql.DB
+	DBFilePath string
 }
 
-func (d *SqlLiteDb) Connect(filePath string) error {
+func (d *SqlLiteDb) Connect() error {
 	var err error
 
-	d.db, err = sql.Open("sqlite3", filePath)
+	d.db, err = sql.Open("sqlite3", d.DBFilePath)
 	if err != nil {
 		return err
 	}
@@ -340,7 +341,7 @@ func (d *SqlLiteDb) DeleteKit(kitId int64) error {
 	return nil
 }
 
-func (d *SqlLiteDb) GetKitParts(kitId uint64) ([]KitPart, error) {
+func (d *SqlLiteDb) GetKitParts(kitId int64) ([]KitPart, error) {
 	const qkitparts string = `
 		select partId, quantity from kitparts
 			where kitId = ?
