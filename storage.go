@@ -6,8 +6,8 @@ type Storage interface {
 	// Links
 	GetLinksForPart(int64) ([]Link, error)
 	GetLinksForKit(int64) ([]Link, error)
-	AddLinkToPart(string) (Link, error)
-	AddLinkToKit(string) (Link, error)
+	AddLinkToPart(int64, string) (Link, error)
+	AddLinkToKit(int64, string) (Link, error)
 	RemoveLinkFromPart(int64, int64) error
 	RemoveLinkFromKit(int64, int64) error
 
@@ -19,10 +19,11 @@ type Storage interface {
 
 	// Kits
 	GetKit(int64) (Kit, error)
-	PutKit(Kit) (Kit, error)
+	AddKit(Kit) (Kit, error)
 	UpdateKit(Kit) (Kit, error)
 	DeleteKit(int64) error
 	GetKitParts(int64) ([]Part, error)
 	AddPartToKit(int64, int64) error
+	SetPartQuantityForKit(int64, uint64, int64) error
 	RemovePartFromKit(int64, int64) error
 }
