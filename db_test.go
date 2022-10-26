@@ -74,7 +74,8 @@ func Test_Links(t *testing.T) {
 		testLink       = "example.com"
 	)
 
-	// AddLinkToPart
+	// Links
+	// // Part Links
 	t.Run("Add/Get/RemoveLinksForPart", func(t *testing.T) {
 		// add
 		link, err := stor.AddLinkToPart(id, testLink)
@@ -104,7 +105,7 @@ func Test_Links(t *testing.T) {
 		assert.Len(t, endLinks, 0)
 	})
 
-	// AddLinkToKit
+	// // Kit Links
 	t.Run("Add/Get/RemoveLinksForKit", func(t *testing.T) {
 		// add
 		kit, err := stor.AddLinkToKit(id, testLink)
@@ -132,5 +133,68 @@ func Test_Links(t *testing.T) {
 		assert.Nil(t, err)
 		assert.NotNil(t, endKits)
 		assert.Len(t, endKits, 0)
+	})
+
+	// Parts
+	t.Run("Parts", func(t *testing.T) {
+		// Add Part
+		inpart := Part{
+			ID:   0,
+			Kind:  "Resistor",
+			Name:  "1k",
+			Links: []string(nil),
+		}
+		part, err := stor.AddPart(inpart)
+
+		assert.Nil(t, err)
+		assert.NotEqual(t, inpart.ID, part.ID)
+		assert.Equal(t, inpart.Kind, part.Kind)
+		assert.Equal(t, inpart.Name, part.Name)
+
+		{ // Get Part
+			gpart, err := stor.GetPart(part.ID)
+
+			assert.Nil(t, err)
+			assert.Equal(t, part, gpart)
+		}
+
+		{ // GetParts
+			parts, err := stor.GetParts()
+
+			assert.Nil(t, err)
+			assert.Len(t, parts, 1)
+			assert.Equal(t, part, parts[0])
+		}
+
+		{
+			upart := Part{
+				ID:    part.ID,
+				Kind:  "Capacitor",
+				Name:  "47nf",
+				Links: []string(nil),
+			}
+
+			updatedPart, err := stor.UpdatePart(upart)
+			
+			assert.Nil(t, err)
+			assert.Equal(t, upart, updatedPart)
+
+			getUpdatedPart, err := stor.GetPart(upart.ID)
+
+			assert.Nil(t, err)
+			assert.Equal(t, updatedPart, getUpdatedPart)
+		}
+
+		{
+			err := stor.DeletePart(part.ID)
+
+			assert.Nil(t, err)
+
+			parts, err := stor.GetParts()
+
+			assert.Nil(t, err)
+			assert.Len(t, parts, 0)
+		}
+
 	})
 }

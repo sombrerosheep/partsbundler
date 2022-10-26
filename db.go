@@ -237,8 +237,8 @@ func (d *SqliteDb) UpdatePart(p Part) (Part, error) {
 	const stmt string = `
 		update parts
 			set kind = ?,
-			set name = ?,
-		where id = ?
+					name = ?
+		where id = ?;
 	`
 	res, err := d.db.Exec(stmt, p.Kind, p.Name, p.ID)
 	if err != nil {
