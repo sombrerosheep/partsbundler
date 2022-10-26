@@ -197,4 +197,108 @@ func Test_Links(t *testing.T) {
 		}
 
 	})
+
+	// Kits
+	t.Run("Kits", func(t *testing.T) {
+		// Add sample parts
+		var testKitParts = []Part{
+			{ Name: "1k", Kind: "Resistor" },
+			{ Name: "4u7", Kind: "Capacitor"},
+			{ Name: "TL072", Kind: "IC"},
+		}
+
+		for i, v := range testKitParts {
+			p, err := stor.AddPart(v)
+			testKitParts[i] = p
+			assert.Nilf(t, err, "Error inserting part into test db (%d:%#v): %s", i, v, err)
+		}
+
+		// Add Kit
+		inkit := Kit{
+			ID:        0,
+			Parts:     []KitPart(nil),
+			Name:      "TS808",
+			Schematic: "example.com/test/schematic",
+			Diagram:   "example.com/test-diagram",
+			Links:     []string(nil),
+		}
+		kit, err := stor.AddKit(inkit)
+
+		assert.Nil(t, err)
+		assert.NotEqual(t, kit.ID, inkit.ID)
+		assert.Equal(t, inkit.Name, kit.Name)
+		assert.Equal(t, inkit.Schematic, kit.Schematic)
+		assert.Equal(t, inkit.Diagram, kit.Diagram)
+
+		{ // Get Kit
+			gotKit, err := stor.GetKit(kit.ID)
+
+			assert.Nil(t, err)
+			assert.Equal(t, kit, gotKit)
+		}
+	
+		{ // Get Kits
+			kits, err := stor.GetKits()
+
+			assert.Nil(t, err)
+			assert.Len(t, kits, 1)
+			assert.Equal(t, kit, kits[0])
+		}
+
+		{ // UpdateKit
+			ukit := Kit{
+				ID:        kit.ID,
+				Parts:     []KitPart(nil),
+				Name:      kit.Name,
+				Schematic: "example.com/moved/test/schematic",
+				Diagram:   "example.com/moved/test/diagram",
+				Links:     []string{},
+			}
+
+			updatedKit, err := stor.UpdateKit(ukit)
+
+			assert.Nil(t, err)
+			assert.Equal(t, ukit, updatedKit)
+		}
+
+		{ // AddPartToKit
+			// use parts added above
+			quantity := uint64(1)
+			expectedKitParts := make([]KitPart, len(testKitParts))
+			
+			for i, v := range testKitParts {
+				err = stor.AddPartToKit(v.ID, kit.ID, quantity)
+
+				assert.Nilf(t, err, "Error adding test part (%d:%#v) to kit: %s", i, v, err)
+
+				expectedKitParts[i] = KitPart{
+					Part:     v,
+					Quantity: quantity,
+				}
+			}
+
+			kitParts, err := stor.GetKitParts(kit.ID)
+			
+			assert.Nil(t, err)
+			assert.Equal(t, len(testKitParts), len(kitParts))
+			assert.Equal(t, expectedKitParts, kitParts)
+		}
+
+		{ // GetKitParts 
+		
+		}
+
+		{ // SetPartQuantityForKit
+
+		}
+
+		{ // RemovePartFromKit
+		
+		}
+
+		{ // DeleteKit
+		
+		}
+
+	})
 }

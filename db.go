@@ -310,17 +310,13 @@ func (d *SqliteDb) GetKits() ([]Kit, error) {
 
 func (d *SqliteDb) GetKit(kitId int64) (Kit, error) {
 	const query string = `
-		select id, name, schematic, diagram from kits where kitId = ?
+		select id, name, schematic, diagram from kits where id = ?
 	`
 	var kit = Kit{}
 
-	rows, err := d.db.Query(query, kitId)
-	if err != nil {
-		return kit, err
-	}
-	defer rows.Close()
+	row := d.db.QueryRow(query, kitId)
 
-	err = rows.Scan(&kit.ID, &kit.Name, &kit.Schematic, &kit.Diagram)
+	err := row.Scan(&kit.ID, &kit.Name, &kit.Schematic, &kit.Diagram)
 	if err != nil {
 		return kit, err
 	}
@@ -354,8 +350,8 @@ func (d *SqliteDb) UpdateKit(kit Kit) (Kit, error) {
 	const stmt string = `
 		update kits
 			set name = ?,
-			set schematic = ?,
-			set diagram = ?
+				  schematic = ?,
+				  diagram = ?
 		where id = ?
 	`
 
@@ -435,26 +431,26 @@ func (d *SqliteDb) GetKitParts(kitId int64) ([]KitPart, error) {
 	return parts, nil
 }
 
-func (d *SqliteDb) AddPartToKit(partId, kitId int64, quanity uint64) error {
+func (d *SqliteDb) AddPartToKit(partId, kitId int64, quantity uint64) error {
 	// does it already exist?
 	const qexist string = "select id from kitparts where partId = ? and kitId = ?"
-	res, err := d.db.Exec(qexist)
+
+	exists, err := d.db.Query(qexist, partId, kitId)
 	if err != nil {
 		return err
 	}
 
-	count, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if count > 0 {
+	if exists.Next() {
 		return fmt.Errorf("Part already exists.")
 	}
 
 	// add it
-	const stmt string = `insert into kitparts(partId, kitId, quantity) values(?, ? ?)`
-	res, err = d.db.Exec(stmt, partId, kitId, quanity)
+	const stmt string = `
+	insert into
+		kitparts(partId, kitId, quantity)
+		values(?, ?, ?)
+	`
+	res, err := d.db.Exec(stmt, partId, kitId, quantity)
 	if err != nil {
 		return err
 	}
