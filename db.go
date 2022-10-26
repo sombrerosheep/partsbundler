@@ -28,14 +28,14 @@ func (d *SqliteDb) Close() error {
 }
 
 // Links
-func (d *SqliteDb) GetLinksForPart(partID int64) ([]Link, error) {
+func (d *SqliteDb) GetLinksForPart(partId int64) ([]Link, error) {
 	const query string = `
 		select id, link from partlinks
 			where partId = ?;
 	`
 	var links = []Link{}
 
-	rows, err := d.db.Query(query, partID)
+	rows, err := d.db.Query(query, partId)
 	if err != nil {
 		return links, err
 	}
@@ -55,14 +55,14 @@ func (d *SqliteDb) GetLinksForPart(partID int64) ([]Link, error) {
 	return links, nil
 }
 
-func (d *SqliteDb) GetLinksForKit(kitID int64) ([]Link, error) {
+func (d *SqliteDb) GetLinksForKit(kitId int64) ([]Link, error) {
 	const query string = `
 		select id, link from kitlinks
 			where kitId = ?;
 	`
 	var links = []Link{}
 
-	rows, err := d.db.Query(query, kitID)
+	rows, err := d.db.Query(query, kitId)
 	if err != nil {
 		return links, err
 	}
@@ -198,11 +198,11 @@ func (d *SqliteDb) GetParts() ([]Part, error) {
 	return parts, nil
 }
 
-func (d *SqliteDb) GetPart(partID int64) (Part, error) {
+func (d *SqliteDb) GetPart(partId int64) (Part, error) {
 	const stmt string = "SELECT id, kind, name from parts where id = ? limit 1;"
 	var part = Part{}
 
-	row := d.db.QueryRow(stmt, partID)
+	row := d.db.QueryRow(stmt, partId)
 	err := row.Scan(&part.ID, &part.Kind, &part.Name)
 	if err != nil {
 		return part, err
@@ -257,12 +257,12 @@ func (d *SqliteDb) UpdatePart(p Part) (Part, error) {
 	return p, nil
 }
 
-func (d *SqliteDb) DeletePart(partID int64) error {
+func (d *SqliteDb) DeletePart(partId int64) error {
 	const stmt string = `
 		delete from parts where id = ?
 	`
 
-	res, err := d.db.Exec(stmt, partID)
+	res, err := d.db.Exec(stmt, partId)
 	if err != nil {
 		return err
 	}
@@ -471,7 +471,7 @@ func (d *SqliteDb) AddPartToKit(partId, kitId int64, quanity uint64) error {
 	return nil
 }
 
-func (d *SqliteDb) SetPartQuantityForKit(partId int64, quantity uint64, kitId int64) error {
+func (d *SqliteDb) SetPartQuantityForKit(partId int64, kitId uint64, quantity int64) error {
 	const stmt string = `
 		update kitparts
 			set(quantity = ?)
