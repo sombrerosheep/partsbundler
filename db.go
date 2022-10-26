@@ -7,12 +7,12 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-type SqlLiteDb struct {
+type SqliteDb struct {
 	db         *sql.DB
 	DBFilePath string
 }
 
-func (d *SqlLiteDb) Connect() error {
+func (d *SqliteDb) Connect() error {
 	var err error
 
 	d.db, err = sql.Open("sqlite3", d.DBFilePath)
@@ -23,8 +23,12 @@ func (d *SqlLiteDb) Connect() error {
 	return nil
 }
 
+func (d *SqliteDb) Close() error {
+	return d.db.Close()
+}
+
 // Links
-func (d *SqlLiteDb) GetLinksForPart(partID int64) ([]Link, error) {
+func (d *SqliteDb) GetLinksForPart(partID int64) ([]Link, error) {
 	const query string = `
 		select id, link from partlinks
 			where partId = ?;
@@ -33,7 +37,7 @@ func (d *SqlLiteDb) GetLinksForPart(partID int64) ([]Link, error) {
 
 	rows, err := d.db.Query(query, partID)
 	if err != nil {
-		return links, nil
+		return links, err
 	}
 	defer rows.Close()
 
@@ -51,16 +55,16 @@ func (d *SqlLiteDb) GetLinksForPart(partID int64) ([]Link, error) {
 	return links, nil
 }
 
-func (d *SqlLiteDb) GetLinksForKit(kitID int64) ([]Link, error) {
+func (d *SqliteDb) GetLinksForKit(kitID int64) ([]Link, error) {
 	const query string = `
 		select id, link from kitlinks
-			where partId = ?;
+			where kitId = ?;
 	`
 	var links = []Link{}
 
 	rows, err := d.db.Query(query, kitID)
 	if err != nil {
-		return links, nil
+		return links, err
 	}
 	defer rows.Close()
 
@@ -78,7 +82,7 @@ func (d *SqlLiteDb) GetLinksForKit(kitID int64) ([]Link, error) {
 	return links, nil
 }
 
-func (d *SqlLiteDb) AddLinkToPart(partId int64, url string) (Link, error) {
+func (d *SqliteDb) AddLinkToPart(partId int64, url string) (Link, error) {
 	const stmt string = `
 		insert into partlinks(partId, link)
 			values(?, ?);
@@ -101,9 +105,9 @@ func (d *SqlLiteDb) AddLinkToPart(partId int64, url string) (Link, error) {
 	return link, nil
 }
 
-func (d *SqlLiteDb) AddLinkToKit(kitId int64, url string) (Link, error) {
+func (d *SqliteDb) AddLinkToKit(kitId int64, url string) (Link, error) {
 	const stmt string = `
-	insert into kitlinks(partId, link)
+	insert into kitlinks(kitId, link)
 		values(?, ?);
 `
 	var link = Link{}
@@ -124,7 +128,7 @@ func (d *SqlLiteDb) AddLinkToKit(kitId int64, url string) (Link, error) {
 	return link, nil
 }
 
-func (d *SqlLiteDb) RemoveLinkFromPart(partId int64, linkId int64) error {
+func (d *SqliteDb) RemoveLinkFromPart(partId int64, linkId int64) error {
 	const stmt string = `
 		delete from partlinks where id = ? and partId = ?
 	`
@@ -146,7 +150,7 @@ func (d *SqlLiteDb) RemoveLinkFromPart(partId int64, linkId int64) error {
 	return nil
 }
 
-func (d *SqlLiteDb) RemoveLinkFromKit(kitId int64, linkId int64) error {
+func (d *SqliteDb) RemoveLinkFromKit(kitId int64, linkId int64) error {
 	const stmt string = `
 		delete from kitlinks where id = ? and kitId = ?
 	`
@@ -169,7 +173,32 @@ func (d *SqlLiteDb) RemoveLinkFromKit(kitId int64, linkId int64) error {
 }
 
 // parts
-func (d *SqlLiteDb) GetPart(partID int64) (Part, error) {
+func (d *SqliteDb) GetParts() ([]Part, error) {
+	const query string = `
+		select id, kind, name from parts;
+	`
+	parts := []Part{}
+
+	rows, err := d.db.Query(query)
+	if err != nil {
+		return parts, nil
+	}
+
+	for rows.Next() {
+		part := Part{}
+
+		err = rows.Scan(&part.ID, &part.Kind, &part.Name)
+		if err != nil {
+			break
+		}
+
+		parts = append(parts, part)
+	}
+
+	return parts, nil
+}
+
+func (d *SqliteDb) GetPart(partID int64) (Part, error) {
 	const stmt string = "SELECT id, kind, name from parts where id = ? limit 1;"
 	var part = Part{}
 
@@ -182,7 +211,7 @@ func (d *SqlLiteDb) GetPart(partID int64) (Part, error) {
 	return part, nil
 }
 
-func (d *SqlLiteDb) AddPart(p Part) (Part, error) {
+func (d *SqliteDb) AddPart(p Part) (Part, error) {
 	const stmt string = `
 		insert into parts(kind, name)
 		values(?, ?)
@@ -204,7 +233,7 @@ func (d *SqlLiteDb) AddPart(p Part) (Part, error) {
 	return newPart, nil
 }
 
-func (d *SqlLiteDb) UpdatePart(p Part) (Part, error) {
+func (d *SqliteDb) UpdatePart(p Part) (Part, error) {
 	const stmt string = `
 		update parts
 			set kind = ?,
@@ -228,7 +257,7 @@ func (d *SqlLiteDb) UpdatePart(p Part) (Part, error) {
 	return p, nil
 }
 
-func (d *SqlLiteDb) DeletePart(partID int64) error {
+func (d *SqliteDb) DeletePart(partID int64) error {
 	const stmt string = `
 		delete from parts where id = ?
 	`
@@ -251,7 +280,35 @@ func (d *SqlLiteDb) DeletePart(partID int64) error {
 }
 
 // kit
-func (d *SqlLiteDb) GetKit(kitId int64) (Kit, error) {
+func (d *SqliteDb) GetKits() ([]Kit, error) {
+	const query string = `
+		select id, name, schematic, diagram from kits;
+	`
+	var kits = []Kit{}
+
+	rows, err := d.db.Query(query)
+	if err != nil {
+		return kits, err
+	}
+
+	for rows.Next() {
+		kit := Kit{}
+
+		err = rows.Scan(&kit.ID, &kit.Name, &kit.Schematic, &kit.Diagram)
+		if err != nil {
+			/* when we have an error, should we continue processing records?
+			   if that happens, we should return the error as well.
+			*/
+			return kits, err
+		}
+
+		kits = append(kits, kit)
+	}
+
+	return kits, nil
+}
+
+func (d *SqliteDb) GetKit(kitId int64) (Kit, error) {
 	const query string = `
 		select id, name, schematic, diagram from kits where kitId = ?
 	`
@@ -259,7 +316,7 @@ func (d *SqlLiteDb) GetKit(kitId int64) (Kit, error) {
 
 	rows, err := d.db.Query(query, kitId)
 	if err != nil {
-		return kit, nil
+		return kit, err
 	}
 	defer rows.Close()
 
@@ -271,7 +328,7 @@ func (d *SqlLiteDb) GetKit(kitId int64) (Kit, error) {
 	return kit, nil
 }
 
-func (d *SqlLiteDb) AddKit(kit Kit) (Kit, error) {
+func (d *SqliteDb) AddKit(kit Kit) (Kit, error) {
 	const stmt string = `
 		insert into kits(name, schematic, diagram)
 			values(?, ?, ?)
@@ -293,7 +350,7 @@ func (d *SqlLiteDb) AddKit(kit Kit) (Kit, error) {
 	return newKit, nil
 }
 
-func (d *SqlLiteDb) UpdateKit(kit Kit) (Kit, error) {
+func (d *SqliteDb) UpdateKit(kit Kit) (Kit, error) {
 	const stmt string = `
 		update kits
 			set name = ?,
@@ -319,7 +376,7 @@ func (d *SqlLiteDb) UpdateKit(kit Kit) (Kit, error) {
 	return kit, nil
 }
 
-func (d *SqlLiteDb) DeleteKit(kitId int64) error {
+func (d *SqliteDb) DeleteKit(kitId int64) error {
 	const stmt string = `
 		delete from parts where id = ?
 	`
@@ -341,7 +398,7 @@ func (d *SqlLiteDb) DeleteKit(kitId int64) error {
 	return nil
 }
 
-func (d *SqlLiteDb) GetKitParts(kitId int64) ([]KitPart, error) {
+func (d *SqliteDb) GetKitParts(kitId int64) ([]KitPart, error) {
 	const qkitparts string = `
 		select partId, quantity from kitparts
 			where kitId = ?
@@ -361,12 +418,12 @@ func (d *SqlLiteDb) GetKitParts(kitId int64) ([]KitPart, error) {
 
 		err := rows.Scan(&pid, &quantity)
 		if err != nil {
-			return parts, nil
+			return parts, err
 		}
 
 		p, err := d.GetPart(pid)
 		if err != nil {
-			return parts, nil
+			return parts, err
 		}
 
 		kp.Part = p
@@ -378,7 +435,7 @@ func (d *SqlLiteDb) GetKitParts(kitId int64) ([]KitPart, error) {
 	return parts, nil
 }
 
-func (d *SqlLiteDb) AddPartToKit(partId, kitId int64, quanity uint64) error {
+func (d *SqliteDb) AddPartToKit(partId, kitId int64, quanity uint64) error {
 	// does it already exist?
 	const qexist string = "select id from kitparts where partId = ? and kitId = ?"
 	res, err := d.db.Exec(qexist)
@@ -388,7 +445,7 @@ func (d *SqlLiteDb) AddPartToKit(partId, kitId int64, quanity uint64) error {
 
 	count, err := res.RowsAffected()
 	if err != nil {
-		return nil
+		return err
 	}
 
 	if count > 0 {
@@ -414,7 +471,7 @@ func (d *SqlLiteDb) AddPartToKit(partId, kitId int64, quanity uint64) error {
 	return nil
 }
 
-func (d *SqlLiteDb) SetPartQuantityForKit(partId int64, quantity uint64, kitId int64) error {
+func (d *SqliteDb) SetPartQuantityForKit(partId int64, quantity uint64, kitId int64) error {
 	const stmt string = `
 		update kitparts
 			set(quantity = ?)
@@ -438,7 +495,7 @@ func (d *SqlLiteDb) SetPartQuantityForKit(partId int64, quantity uint64, kitId i
 	return nil
 }
 
-func (d *SqlLiteDb) RemovePartFromKit(partId, kitId int64) error {
+func (d *SqliteDb) RemovePartFromKit(partId, kitId int64) error {
 	const stmt string = `
 		delete from kitparts
 		where partId = ? and kitId = ?

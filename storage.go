@@ -2,6 +2,7 @@ package main
 
 type Storage interface {
 	Connect() error
+	Close() error
 
 	// Links
 	GetLinksForPart(int64) ([]Link, error)
@@ -12,12 +13,14 @@ type Storage interface {
 	RemoveLinkFromKit(int64, int64) error
 
 	// Parts
+	GetParts() ([]Part, error)
 	GetPart(int64) (Part, error)
 	AddPart(Part) (Part, error)
 	UpdatePart(Part) (Part, error)
 	DeletePart(int64) error
 
 	// Kits
+	GetKits() ([]Kit, error)
 	GetKit(int64) (Kit, error)
 	AddKit(Kit) (Kit, error)
 	UpdateKit(Kit) (Kit, error)
