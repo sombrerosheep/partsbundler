@@ -142,7 +142,7 @@ func Test_Links(t *testing.T) {
 			ID:    0,
 			Kind:  "Resistor",
 			Name:  "1k",
-			Links: []string(nil),
+			Links: []Link(nil),
 		}
 		part, err := stor.AddPart(inpart)
 
@@ -171,7 +171,7 @@ func Test_Links(t *testing.T) {
 				ID:    part.ID,
 				Kind:  "Capacitor",
 				Name:  "47nf",
-				Links: []string(nil),
+				Links: []Link(nil),
 			}
 
 			updatedPart, err := stor.UpdatePart(upart)
@@ -220,7 +220,7 @@ func Test_Links(t *testing.T) {
 			Name:      "TS808",
 			Schematic: "example.com/test/schematic",
 			Diagram:   "example.com/test-diagram",
-			Links:     []string(nil),
+			Links:     []Link(nil),
 		}
 		kit, err := stor.AddKit(inkit)
 
@@ -252,7 +252,7 @@ func Test_Links(t *testing.T) {
 				Name:      kit.Name,
 				Schematic: "example.com/moved/test/schematic",
 				Diagram:   "example.com/moved/test/diagram",
-				Links:     []string{},
+				Links:     []Link{},
 			}
 
 			updatedKit, err := stor.UpdateKit(ukit)

@@ -16,5 +16,5 @@ type Part struct {
 	ID    int64    `json:"id"`
 	Kind  PartType `json:"kind"`
 	Name  string   `json:"name"`
-	Links []string `json:"links"`
+	Links []Link   `json:"links"`
 }

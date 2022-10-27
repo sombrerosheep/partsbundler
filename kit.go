@@ -6,7 +6,7 @@ type Kit struct {
 	Name      string    `json:"name"`
 	Schematic string    `json:"schematics"`
 	Diagram   string    `json:"diagram,omitempty"`
-	Links     []string  `json:"links,omitempty"`
+	Links     []Link    `json:"links,omitempty"`
 }
 
 type KitPart struct {
