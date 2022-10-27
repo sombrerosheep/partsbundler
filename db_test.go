@@ -50,7 +50,7 @@ func run(m *testing.M) (int, error) {
 }
 
 func Test_Links(t *testing.T) {
-	var stor Storage = &SqliteDb{
+	var stor Storage = &SqliteStorage{
 		DBFilePath: test_db_path,
 	}
 	err := stor.Connect()
@@ -139,7 +139,7 @@ func Test_Links(t *testing.T) {
 	t.Run("Parts", func(t *testing.T) {
 		// Add Part
 		inpart := Part{
-			ID:   0,
+			ID:    0,
 			Kind:  "Resistor",
 			Name:  "1k",
 			Links: []string(nil),
@@ -175,7 +175,7 @@ func Test_Links(t *testing.T) {
 			}
 
 			updatedPart, err := stor.UpdatePart(upart)
-			
+
 			assert.Nil(t, err)
 			assert.Equal(t, upart, updatedPart)
 
@@ -202,9 +202,9 @@ func Test_Links(t *testing.T) {
 	t.Run("Kits", func(t *testing.T) {
 		// Add sample parts
 		var testKitParts = []Part{
-			{ Name: "1k", Kind: "Resistor" },
-			{ Name: "4u7", Kind: "Capacitor"},
-			{ Name: "TL072", Kind: "IC"},
+			{Name: "1k", Kind: "Resistor"},
+			{Name: "4u7", Kind: "Capacitor"},
+			{Name: "TL072", Kind: "IC"},
 		}
 
 		for i, v := range testKitParts {
@@ -236,7 +236,7 @@ func Test_Links(t *testing.T) {
 			assert.Nil(t, err)
 			assert.Equal(t, kit, gotKit)
 		}
-	
+
 		{ // Get Kits
 			kits, err := stor.GetKits()
 
@@ -265,7 +265,7 @@ func Test_Links(t *testing.T) {
 			// use parts added above
 			quantity := uint64(1)
 			expectedKitParts := make([]KitPart, len(testKitParts))
-			
+
 			for i, v := range testKitParts {
 				err = stor.AddPartToKit(v.ID, kit.ID, quantity)
 
@@ -278,14 +278,14 @@ func Test_Links(t *testing.T) {
 			}
 
 			kitParts, err := stor.GetKitParts(kit.ID)
-			
+
 			assert.Nil(t, err)
 			assert.Equal(t, len(testKitParts), len(kitParts))
 			assert.Equal(t, expectedKitParts, kitParts)
 		}
 
-		{ // GetKitParts 
-		
+		{ // GetKitParts
+
 		}
 
 		{ // SetPartQuantityForKit
@@ -293,11 +293,11 @@ func Test_Links(t *testing.T) {
 		}
 
 		{ // RemovePartFromKit
-		
+
 		}
 
 		{ // DeleteKit
-		
+
 		}
 
 	})

@@ -9,7 +9,7 @@ var stor Storage
 func main() {
 	fmt.Println("Hello")
 
-	db := SqliteDb{DBFilePath: "./data/partsbundler.db"}
+	db := SqliteStorage{DBFilePath: "./data/partsbundler.db"}
 	stor = &db
 
 	db.Connect()

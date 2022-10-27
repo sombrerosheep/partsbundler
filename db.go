@@ -7,12 +7,12 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-type SqliteDb struct {
+type SqliteStorage struct {
 	db         *sql.DB
 	DBFilePath string
 }
 
-func (d *SqliteDb) Connect() error {
+func (d *SqliteStorage) Connect() error {
 	var err error
 
 	d.db, err = sql.Open("sqlite3", d.DBFilePath)
@@ -23,12 +23,12 @@ func (d *SqliteDb) Connect() error {
 	return nil
 }
 
-func (d *SqliteDb) Close() error {
+func (d *SqliteStorage) Close() error {
 	return d.db.Close()
 }
 
 // Links
-func (d *SqliteDb) GetLinksForPart(partId int64) ([]Link, error) {
+func (d *SqliteStorage) GetLinksForPart(partId int64) ([]Link, error) {
 	const query string = `
 		select id, link from partlinks
 			where partId = ?;
@@ -55,7 +55,7 @@ func (d *SqliteDb) GetLinksForPart(partId int64) ([]Link, error) {
 	return links, nil
 }
 
-func (d *SqliteDb) GetLinksForKit(kitId int64) ([]Link, error) {
+func (d *SqliteStorage) GetLinksForKit(kitId int64) ([]Link, error) {
 	const query string = `
 		select id, link from kitlinks
 			where kitId = ?;
@@ -82,7 +82,7 @@ func (d *SqliteDb) GetLinksForKit(kitId int64) ([]Link, error) {
 	return links, nil
 }
 
-func (d *SqliteDb) AddLinkToPart(partId int64, url string) (Link, error) {
+func (d *SqliteStorage) AddLinkToPart(partId int64, url string) (Link, error) {
 	const stmt string = `
 		insert into partlinks(partId, link)
 			values(?, ?);
@@ -105,7 +105,7 @@ func (d *SqliteDb) AddLinkToPart(partId int64, url string) (Link, error) {
 	return link, nil
 }
 
-func (d *SqliteDb) AddLinkToKit(kitId int64, url string) (Link, error) {
+func (d *SqliteStorage) AddLinkToKit(kitId int64, url string) (Link, error) {
 	const stmt string = `
 	insert into kitlinks(kitId, link)
 		values(?, ?);
@@ -128,7 +128,7 @@ func (d *SqliteDb) AddLinkToKit(kitId int64, url string) (Link, error) {
 	return link, nil
 }
 
-func (d *SqliteDb) RemoveLinkFromPart(partId int64, linkId int64) error {
+func (d *SqliteStorage) RemoveLinkFromPart(partId int64, linkId int64) error {
 	const stmt string = `
 		delete from partlinks where id = ? and partId = ?
 	`
@@ -150,7 +150,7 @@ func (d *SqliteDb) RemoveLinkFromPart(partId int64, linkId int64) error {
 	return nil
 }
 
-func (d *SqliteDb) RemoveLinkFromKit(kitId int64, linkId int64) error {
+func (d *SqliteStorage) RemoveLinkFromKit(kitId int64, linkId int64) error {
 	const stmt string = `
 		delete from kitlinks where id = ? and kitId = ?
 	`
@@ -173,7 +173,7 @@ func (d *SqliteDb) RemoveLinkFromKit(kitId int64, linkId int64) error {
 }
 
 // parts
-func (d *SqliteDb) GetParts() ([]Part, error) {
+func (d *SqliteStorage) GetParts() ([]Part, error) {
 	const query string = `
 		select id, kind, name from parts;
 	`
@@ -198,7 +198,7 @@ func (d *SqliteDb) GetParts() ([]Part, error) {
 	return parts, nil
 }
 
-func (d *SqliteDb) GetPart(partId int64) (Part, error) {
+func (d *SqliteStorage) GetPart(partId int64) (Part, error) {
 	const stmt string = "SELECT id, kind, name from parts where id = ? limit 1;"
 	var part = Part{}
 
@@ -211,7 +211,7 @@ func (d *SqliteDb) GetPart(partId int64) (Part, error) {
 	return part, nil
 }
 
-func (d *SqliteDb) AddPart(p Part) (Part, error) {
+func (d *SqliteStorage) AddPart(p Part) (Part, error) {
 	const stmt string = `
 		insert into parts(kind, name)
 		values(?, ?)
@@ -233,7 +233,7 @@ func (d *SqliteDb) AddPart(p Part) (Part, error) {
 	return newPart, nil
 }
 
-func (d *SqliteDb) UpdatePart(p Part) (Part, error) {
+func (d *SqliteStorage) UpdatePart(p Part) (Part, error) {
 	const stmt string = `
 		update parts
 			set kind = ?,
@@ -257,7 +257,7 @@ func (d *SqliteDb) UpdatePart(p Part) (Part, error) {
 	return p, nil
 }
 
-func (d *SqliteDb) DeletePart(partId int64) error {
+func (d *SqliteStorage) DeletePart(partId int64) error {
 	const stmt string = `
 		delete from parts where id = ?
 	`
@@ -280,7 +280,7 @@ func (d *SqliteDb) DeletePart(partId int64) error {
 }
 
 // kit
-func (d *SqliteDb) GetKits() ([]Kit, error) {
+func (d *SqliteStorage) GetKits() ([]Kit, error) {
 	const query string = `
 		select id, name, schematic, diagram from kits;
 	`
@@ -308,7 +308,7 @@ func (d *SqliteDb) GetKits() ([]Kit, error) {
 	return kits, nil
 }
 
-func (d *SqliteDb) GetKit(kitId int64) (Kit, error) {
+func (d *SqliteStorage) GetKit(kitId int64) (Kit, error) {
 	const query string = `
 		select id, name, schematic, diagram from kits where id = ?
 	`
@@ -324,7 +324,7 @@ func (d *SqliteDb) GetKit(kitId int64) (Kit, error) {
 	return kit, nil
 }
 
-func (d *SqliteDb) AddKit(kit Kit) (Kit, error) {
+func (d *SqliteStorage) AddKit(kit Kit) (Kit, error) {
 	const stmt string = `
 		insert into kits(name, schematic, diagram)
 			values(?, ?, ?)
@@ -346,7 +346,7 @@ func (d *SqliteDb) AddKit(kit Kit) (Kit, error) {
 	return newKit, nil
 }
 
-func (d *SqliteDb) UpdateKit(kit Kit) (Kit, error) {
+func (d *SqliteStorage) UpdateKit(kit Kit) (Kit, error) {
 	const stmt string = `
 		update kits
 			set name = ?,
@@ -372,7 +372,7 @@ func (d *SqliteDb) UpdateKit(kit Kit) (Kit, error) {
 	return kit, nil
 }
 
-func (d *SqliteDb) DeleteKit(kitId int64) error {
+func (d *SqliteStorage) DeleteKit(kitId int64) error {
 	const stmt string = `
 		delete from parts where id = ?
 	`
@@ -394,7 +394,7 @@ func (d *SqliteDb) DeleteKit(kitId int64) error {
 	return nil
 }
 
-func (d *SqliteDb) GetKitParts(kitId int64) ([]KitPart, error) {
+func (d *SqliteStorage) GetKitParts(kitId int64) ([]KitPart, error) {
 	const qkitparts string = `
 		select partId, quantity from kitparts
 			where kitId = ?
@@ -431,7 +431,7 @@ func (d *SqliteDb) GetKitParts(kitId int64) ([]KitPart, error) {
 	return parts, nil
 }
 
-func (d *SqliteDb) AddPartToKit(partId, kitId int64, quantity uint64) error {
+func (d *SqliteStorage) AddPartToKit(partId, kitId int64, quantity uint64) error {
 	// does it already exist?
 	const qexist string = "select id from kitparts where partId = ? and kitId = ?"
 
@@ -467,7 +467,7 @@ func (d *SqliteDb) AddPartToKit(partId, kitId int64, quantity uint64) error {
 	return nil
 }
 
-func (d *SqliteDb) SetPartQuantityForKit(partId int64, kitId uint64, quantity int64) error {
+func (d *SqliteStorage) SetPartQuantityForKit(partId int64, kitId uint64, quantity int64) error {
 	const stmt string = `
 		update kitparts
 			set(quantity = ?)
@@ -491,7 +491,7 @@ func (d *SqliteDb) SetPartQuantityForKit(partId int64, kitId uint64, quantity in
 	return nil
 }
 
-func (d *SqliteDb) RemovePartFromKit(partId, kitId int64) error {
+func (d *SqliteStorage) RemovePartFromKit(partId, kitId int64) error {
 	const stmt string = `
 		delete from kitparts
 		where partId = ? and kitId = ?
