@@ -4,17 +4,18 @@ import (
 	"fmt"
 )
 
-var stor Storage
+var service BundlerService
 
 func main() {
 	fmt.Println("Hello")
 
-	db := SqliteStorage{DBFilePath: "./data/partsbundler.db"}
-	stor = &db
+	sqliteService, err := CreateSqliteService("./data/partsbundler.db")
+	if err != nil {
+		fmt.Printf("Error initializing sqlite service: %s", err)
+		return
+	}
 
-	db.Connect()
-
-	parts, err := stor.GetParts()
+	parts, err := sqliteService.Parts.GetAll()
 	if err != nil {
 		fmt.Printf("Error getting parts: $%s\n", err.Error())
 		return
@@ -25,7 +26,7 @@ func main() {
 		fmt.Printf("| %3d | %20s | %25s |\n", v.ID, v.Kind, v.Name)
 	}
 
-	kits, err := stor.GetKits()
+	kits, err := sqliteService.Kits.GetAll()
 	if err != nil {
 		fmt.Printf("Error getting kits: $%s\n", err.Error())
 		return
