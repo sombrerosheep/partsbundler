@@ -2,20 +2,57 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
-type SqliteStorage struct {
+type isqlitedb interface {
+	Connect() error
+	Close() error
+
+	GetPart(partId int64) (Part, error)
+	GetAllParts() ([]Part, error)
+	GetPartLinks(partId int64) ([]Link, error)
+	AddLinkToPart(link string, partId int64) (int64, error)
+	RemoveLinkFromPart(linkId, partId int64) error
+	CreatePart(name string, kind PartType) (int64, error)
+	DeletePart(partId int64) error
+
+	GetKit(kitId int64) (Kit, error)
+	GetKitPartsForKit(kitId int64) ([]kitPartRef, error)
+	GetAllKits() ([]Kit, error)
+	AddPartToKit(partId, kitId int64, quantity uint64) error
+	UpdatePartQuantity(partId, kitId int64, quantity uint64) error
+	RemovePartFromKit(partId, kitId int64) error
+	GetKitLinks(kitId int64) ([]Link, error)
+	AddLinkToKit(link string, kitId int64) (int64, error)
+	RemoveLinkFromKit(linkId, kitId int64) error
+	CreateKit(name, schematic, diagram string) (int64, error)
+	RemoveKit(kitId int64) error
+}
+
+func CreateSqliteDB(dbPath string) (isqlitedb, error) {
+	sq := &sqlitedb{
+		DBFilePath: dbPath,
+	}
+
+	err := sq.Connect()
+	if err != nil {
+		return nil, err
+	}
+
+	return sq, nil
+}
+
+type sqlitedb struct {
 	db         *sql.DB
 	DBFilePath string
 }
 
-func (d *SqliteStorage) Connect() error {
+func (db *sqlitedb) Connect() error {
 	var err error
 
-	d.db, err = sql.Open("sqlite3", d.DBFilePath)
+	db.db, err = sql.Open("sqlite3", db.DBFilePath)
 	if err != nil {
 		return err
 	}
@@ -23,174 +60,43 @@ func (d *SqliteStorage) Connect() error {
 	return nil
 }
 
-func (d *SqliteStorage) Close() error {
-	return d.db.Close()
+func (db sqlitedb) Close() error {
+	return db.db.Close()
 }
 
-// Links
-func (d *SqliteStorage) GetLinksForPart(partId int64) ([]Link, error) {
+func (db sqlitedb) GetPart(partId int64) (Part, error) {
 	const query string = `
-		select id, link from partlinks
-			where partId = ?;
+		select id, name, kind from parts
+			where id = ?
 	`
-	var links = []Link{}
+	part := Part{}
 
-	rows, err := d.db.Query(query, partId)
-	if err != nil {
-		return links, err
-	}
-	defer rows.Close()
+	row := db.db.QueryRow(query, partId)
+	err := row.Scan(&part.ID, &part.Name, &part.Kind)
 
-	for rows.Next() {
-		var l = Link{}
-
-		err = rows.Scan(&l.ID, &l.URL)
-		if err != nil {
-			break
-		}
-
-		links = append(links, l)
+	if err == sql.ErrNoRows {
+		err = nil
 	}
 
-	return links, nil
+	return part, err
 }
 
-func (d *SqliteStorage) GetLinksForKit(kitId int64) ([]Link, error) {
+func (db sqlitedb) GetAllParts() ([]Part, error) {
 	const query string = `
-		select id, link from kitlinks
-			where kitId = ?;
-	`
-	var links = []Link{}
-
-	rows, err := d.db.Query(query, kitId)
-	if err != nil {
-		return links, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var l = Link{}
-
-		err = rows.Scan(&l.ID, &l.URL)
-		if err != nil {
-			break
-		}
-
-		links = append(links, l)
-	}
-
-	return links, nil
-}
-
-func (d *SqliteStorage) AddLinkToPart(partId int64, url string) (Link, error) {
-	const stmt string = `
-		insert into partlinks(partId, link)
-			values(?, ?);
-	`
-	var link = Link{}
-
-	res, err := d.db.Exec(stmt, partId, url)
-	if err != nil {
-		return link, err
-	}
-
-	id, err := res.LastInsertId()
-	if err != nil {
-		return link, err
-	}
-
-	link.ID = id
-	link.URL = url
-
-	return link, nil
-}
-
-func (d *SqliteStorage) AddLinkToKit(kitId int64, url string) (Link, error) {
-	const stmt string = `
-	insert into kitlinks(kitId, link)
-		values(?, ?);
-`
-	var link = Link{}
-
-	res, err := d.db.Exec(stmt, kitId, url)
-	if err != nil {
-		return link, err
-	}
-
-	id, err := res.LastInsertId()
-	if err != nil {
-		return link, err
-	}
-
-	link.ID = id
-	link.URL = url
-
-	return link, nil
-}
-
-func (d *SqliteStorage) RemoveLinkFromPart(partId int64, linkId int64) error {
-	const stmt string = `
-		delete from partlinks where id = ? and partId = ?
-	`
-
-	res, err := d.db.Exec(stmt, linkId, partId)
-	if err != nil {
-		return err
-	}
-
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rows != 1 {
-		return fmt.Errorf("Expected 1 row to be affected but %d were", rows)
-	}
-
-	return nil
-}
-
-func (d *SqliteStorage) RemoveLinkFromKit(kitId int64, linkId int64) error {
-	const stmt string = `
-		delete from kitlinks where id = ? and kitId = ?
-	`
-
-	res, err := d.db.Exec(stmt, linkId, kitId)
-	if err != nil {
-		return err
-	}
-
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rows != 1 {
-		return fmt.Errorf("Expected 1 row to be affected but %d were", rows)
-	}
-
-	return nil
-}
-
-// parts
-func (d *SqliteStorage) GetParts() ([]Part, error) {
-	const query string = `
-		select id, kind, name from parts;
+		select id, name, kind from parts
 	`
 	parts := []Part{}
 
-	rows, err := d.db.Query(query)
+	rows, err := db.db.Query(query)
 	if err != nil {
-		return parts, nil
+		return nil, err
 	}
 
 	for rows.Next() {
 		part := Part{}
 
-		err = rows.Scan(&part.ID, &part.Kind, &part.Name)
-		if err != nil {
-			break
-		}
+		// handle no rows err
+		rows.Scan(&part.ID, &part.Name, &part.Kind)
 
 		parts = append(parts, part)
 	}
@@ -198,108 +104,155 @@ func (d *SqliteStorage) GetParts() ([]Part, error) {
 	return parts, nil
 }
 
-func (d *SqliteStorage) GetPart(partId int64) (Part, error) {
-	const stmt string = "SELECT id, kind, name from parts where id = ? limit 1;"
-	var part = Part{}
-
-	row := d.db.QueryRow(stmt, partId)
-	err := row.Scan(&part.ID, &part.Kind, &part.Name)
-	if err != nil {
-		return part, err
-	}
-
-	return part, nil
-}
-
-func (d *SqliteStorage) AddPart(p Part) (Part, error) {
-	const stmt string = `
-		insert into parts(kind, name)
-		values(?, ?)
+func (db sqlitedb) GetPartLinks(partId int64) ([]Link, error) {
+	const query string = `
+		select id, link from partlinks
+			where partId = ?
 	`
-	newPart := p
+	links := []Link{}
 
-	res, err := d.db.Exec(stmt, p.Kind, p.Name)
+	rows, err := db.db.Query(query, partId)
 	if err != nil {
-		return newPart, err
+		return nil, err
 	}
 
-	newId, err := res.LastInsertId()
-	if err != nil {
-		return newPart, err
+	for rows.Next() {
+		link := Link{}
+
+		err := rows.Scan(&link.ID, &link.URL)
+		if err != nil {
+			return nil, nil
+		}
+
+		links = append(links, link)
 	}
 
-	newPart.ID = newId
-
-	return newPart, nil
+	return links, nil
 }
 
-func (d *SqliteStorage) UpdatePart(p Part) (Part, error) {
+func (db sqlitedb) AddLinkToPart(link string, partId int64) (int64, error) {
 	const stmt string = `
-		update parts
-			set kind = ?,
-					name = ?
-		where id = ?;
+		insert into partlinks(partId, link)
+			values(?, ?)
 	`
-	res, err := d.db.Exec(stmt, p.Kind, p.Name, p.ID)
+
+	res, err := db.db.Exec(stmt, partId, link)
 	if err != nil {
-		return p, err
+		return -1, nil
 	}
 
-	rows, err := res.RowsAffected()
+	id, err := res.LastInsertId()
 	if err != nil {
-		return p, err
+		return -1, nil
 	}
 
-	if rows != 1 {
-		return p, fmt.Errorf("Expected 1 row to be affected but %d were", rows)
-	}
-
-	return p, nil
+	return id, nil
 }
 
-func (d *SqliteStorage) DeletePart(partId int64) error {
+func (db sqlitedb) RemoveLinkFromPart(linkId, partId int64) error {
+	const stmt string = `
+		delete from partlinks
+			where id = ? and partId = ?
+	`
+
+	_, err := db.db.Exec(stmt, linkId, partId)
+
+	return err
+}
+
+func (db sqlitedb) CreatePart(name string, kind PartType) (int64, error) {
+	const stmt string = `
+		insert into parts(name, kind)
+			values(?, ?)
+	`
+
+	res, err := db.db.Exec(stmt, name, kind)
+	if err != nil {
+		return -1, err
+	}
+
+	id, err := res.LastInsertId()
+	if err != nil {
+		return -1, err
+	}
+
+	return id, nil
+}
+
+func (db sqlitedb) DeletePart(partId int64) error {
 	const stmt string = `
 		delete from parts where id = ?
 	`
 
-	res, err := d.db.Exec(stmt, partId)
-	if err != nil {
-		return err
-	}
+	_, err := db.db.Exec(stmt, partId)
 
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rows != 1 {
-		return fmt.Errorf("Expected 1 row to be affected but %d were", rows)
-	}
-
-	return nil
+	return err
 }
 
-// kit
-func (d *SqliteStorage) GetKits() ([]Kit, error) {
+func (db sqlitedb) GetKit(kitId int64) (Kit, error) {
 	const query string = `
-		select id, name, schematic, diagram from kits;
+		select id, name, schematic, diagram from kits
+			where id = ?
 	`
-	var kits = []Kit{}
+	kit := Kit{}
 
-	rows, err := d.db.Query(query)
+	row := db.db.QueryRow(query, kitId)
+
+	err := row.Scan(&kit.ID, &kit.Name, &kit.Schematic, &kit.Diagram)
+
+	if err == sql.ErrNoRows {
+		err = nil
+	}
+
+	return kit, nil
+}
+
+type kitPartRef struct {
+	kitId    int64
+	partId   int64
+	quantity uint64
+}
+
+func (db sqlitedb) GetKitPartsForKit(kitId int64) ([]kitPartRef, error) {
+	const query string = `
+		select kitId, partId, quantity from kitparts
+			where kitId = ?
+	`
+
+	parts := []kitPartRef{}
+
+	rows, err := db.db.Query(query, kitId)
 	if err != nil {
-		return kits, err
+		return nil, err
 	}
 
 	for rows.Next() {
+		part := kitPartRef{}
+		rows.Scan(&part.kitId, &part.partId, &part.quantity)
+
+		parts = append(parts, part)
+	}
+
+	return parts, nil
+}
+
+func (db sqlitedb) GetAllKits() ([]Kit, error) {
+	const query string = `
+		select id, name, schematic, diagram from kits
+	`
+
+	rows, err := db.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+
+	kits := []Kit{}
+	for rows.Next() {
 		kit := Kit{}
 
-		err = rows.Scan(&kit.ID, &kit.Name, &kit.Schematic, &kit.Diagram)
+		err := rows.Scan(&kit.ID, &kit.Name, &kit.Schematic, &kit.Diagram)
 		if err != nil {
-			/* when we have an error, should we continue processing records?
-			   if that happens, we should return the error as well.
-			*/
-			return kits, err
+			return nil, err
 		}
 
 		kits = append(kits, kit)
@@ -308,208 +261,119 @@ func (d *SqliteStorage) GetKits() ([]Kit, error) {
 	return kits, nil
 }
 
-func (d *SqliteStorage) GetKit(kitId int64) (Kit, error) {
-	const query string = `
-		select id, name, schematic, diagram from kits where id = ?
-	`
-	var kit = Kit{}
-
-	row := d.db.QueryRow(query, kitId)
-
-	err := row.Scan(&kit.ID, &kit.Name, &kit.Schematic, &kit.Diagram)
-	if err != nil {
-		return kit, err
-	}
-
-	return kit, nil
-}
-
-func (d *SqliteStorage) AddKit(kit Kit) (Kit, error) {
+func (db sqlitedb) AddPartToKit(partId, kitId int64, quantity uint64) error {
 	const stmt string = `
-		insert into kits(name, schematic, diagram)
+		insert into kitparts(partId, kitId, quantity)
 			values(?, ?, ?)
 	`
-	newKit := kit
 
-	res, err := d.db.Exec(stmt, kit.Name, kit.Schematic, kit.Diagram)
+	_, err := db.db.Exec(stmt, partId, kitId, quantity)
+
+	return err
+}
+
+func (db sqlitedb) UpdatePartQuantity(partId, kitId int64, quantity uint64) error {
+	const stmt string = `
+		update kitparts
+			set quantity = ?
+			where partId = ? and kitId = ?
+	`
+	_, err := db.db.Exec(stmt, quantity, partId, kitId)
+
+	return err
+}
+
+func (db sqlitedb) RemovePartFromKit(partId, kitId int64) error {
+	const stmt string = `
+		delete from kitparts
+			where partId = ? and kitId = ?
+	`
+
+	_, err := db.db.Exec(stmt, partId, kitId)
+
+	return err
+}
+
+func (db sqlitedb) GetKitLinks(kitId int64) ([]Link, error) {
+	const query string = `
+		select id, link from kitlinks
+			where kitId = ?
+	`
+
+	links := []Link{}
+
+	rows, err := db.db.Query(query, kitId)
 	if err != nil {
-		return kit, err
+		return nil, err
+	}
+
+	for rows.Next() {
+		link := Link{}
+
+		rows.Scan(&link.ID, &link.URL)
+
+		links = append(links, link)
+	}
+
+	return links, nil
+}
+
+func (db sqlitedb) AddLinkToKit(link string, kitId int64) (int64, error) {
+	const stmt string = `
+		insert into kitlinks(kitId, link)
+			values(?, ?)
+	`
+
+	res, err := db.db.Exec(stmt, kitId, link)
+	if err != nil {
+		return -1, err
 	}
 
 	id, err := res.LastInsertId()
 	if err != nil {
-		return kit, err
+		return -1, err
 	}
 
-	newKit.ID = id
-
-	return newKit, nil
+	return id, nil
 }
 
-func (d *SqliteStorage) UpdateKit(kit Kit) (Kit, error) {
+func (db sqlitedb) RemoveLinkFromKit(linkId, kitId int64) error {
 	const stmt string = `
-		update kits
-			set name = ?,
-				  schematic = ?,
-				  diagram = ?
-		where id = ?
+		delete from kitlinks
+			where kitId = ? and id = ?
 	`
 
-	res, err := d.db.Exec(stmt, kit.Name, kit.Schematic, kit.Diagram, kit.ID)
-	if err != nil {
-		return kit, err
-	}
+	_, err := db.db.Exec(stmt, kitId, linkId)
 
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return kit, err
-	}
-
-	if rows != 1 {
-		return kit, fmt.Errorf("Expected 1 row to be affected but %d were", rows)
-	}
-
-	return kit, nil
+	return err
 }
 
-func (d *SqliteStorage) DeleteKit(kitId int64) error {
+func (db sqlitedb) CreateKit(name, schematic, diagram string) (int64, error) {
 	const stmt string = `
-		delete from parts where id = ?
+		insert into kits(name, schematic, diagram)
+			values(?, ?, ?)
 	`
 
-	res, err := d.db.Exec(stmt, kitId)
+	res, err := db.db.Exec(stmt, name, schematic, diagram)
 	if err != nil {
-		return err
+		return -1, err
 	}
 
-	rows, err := res.RowsAffected()
+	id, err := res.LastInsertId()
 	if err != nil {
-		return err
+		return -1, err
 	}
 
-	if rows != 1 {
-		return fmt.Errorf("Expected 1 row to be affected but %d were", rows)
-	}
-
-	return nil
+	return id, nil
 }
 
-func (d *SqliteStorage) GetKitParts(kitId int64) ([]KitPart, error) {
-	const qkitparts string = `
-		select partId, quantity from kitparts
-			where kitId = ?
-	`
-	var parts = []KitPart{}
-
-	rows, err := d.db.Query(qkitparts, kitId)
-	if err != nil {
-		return parts, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var kp = KitPart{}
-		var pid int64
-		var quantity uint64
-
-		err := rows.Scan(&pid, &quantity)
-		if err != nil {
-			return parts, err
-		}
-
-		p, err := d.GetPart(pid)
-		if err != nil {
-			return parts, err
-		}
-
-		kp.Part = p
-		kp.Quantity = quantity
-
-		parts = append(parts, kp)
-	}
-
-	return parts, nil
-}
-
-func (d *SqliteStorage) AddPartToKit(partId, kitId int64, quantity uint64) error {
-	// does it already exist?
-	const qexist string = "select id from kitparts where partId = ? and kitId = ?"
-
-	exists, err := d.db.Query(qexist, partId, kitId)
-	if err != nil {
-		return err
-	}
-
-	if exists.Next() {
-		return fmt.Errorf("Part already exists.")
-	}
-
-	// add it
+func (db sqlitedb) RemoveKit(kitId int64) error {
 	const stmt string = `
-	insert into
-		kitparts(partId, kitId, quantity)
-		values(?, ?, ?)
-	`
-	res, err := d.db.Exec(stmt, partId, kitId, quantity)
-	if err != nil {
-		return err
-	}
-
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rows != 1 {
-		return fmt.Errorf("Expected 1 row to be affected but %d were", rows)
-	}
-
-	return nil
-}
-
-func (d *SqliteStorage) SetPartQuantityForKit(partId int64, kitId uint64, quantity int64) error {
-	const stmt string = `
-		update kitparts
-			set(quantity = ?)
-		where partId = ? and kitId = ?
+		delete from kits
+			where id = ?
 	`
 
-	res, err := d.db.Exec(stmt, quantity, partId, kitId)
-	if err != nil {
-		return err
-	}
+	_, err := db.db.Exec(stmt, kitId)
 
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rows != 1 {
-		return fmt.Errorf("Expected 1 row to be affected but %d were", rows)
-	}
-
-	return nil
-}
-
-func (d *SqliteStorage) RemovePartFromKit(partId, kitId int64) error {
-	const stmt string = `
-		delete from kitparts
-		where partId = ? and kitId = ?
-	`
-
-	res, err := d.db.Exec(stmt, partId, kitId)
-	if err != nil {
-		return err
-	}
-
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rows != 1 {
-		return fmt.Errorf("Expected 1 row to be affected but %d were", rows)
-	}
-
-	return nil
+	return err
 }

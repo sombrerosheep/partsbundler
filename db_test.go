@@ -49,256 +49,281 @@ func run(m *testing.M) (int, error) {
 	return m.Run(), nil
 }
 
-func Test_Links(t *testing.T) {
-	var stor Storage = &SqliteStorage{
+func getTestDbConnection(t *testing.T) (sqlitedb, error) {
+	var testdb = sqlitedb{
 		DBFilePath: test_db_path,
 	}
-	err := stor.Connect()
+	err := testdb.Connect()
+	if err != nil {
+		return testdb, nil
+	}
+
+	return testdb, nil
+}
+
+func testDbDeferredCleanup(t *testing.T, db sqlitedb) {
+	err := db.Close()
+	if err != nil {
+		t.Errorf("Error closing test database: %s", err)
+	}
+
+	err = os.Remove(test_db_path)
+	if err != nil {
+		t.Errorf("Error removing test database: %s", err)
+	}
+}
+
+func Test_sqlite(t *testing.T) {
+	testdb, err := getTestDbConnection(t)
 	if err != nil {
 		t.Fatalf("Error connecting to test db (%s): %s", test_db_path, err)
 	}
-	defer func() {
-		err := stor.Close()
-		if err != nil {
-			t.Errorf("Error closing test database: %s", err)
-		}
-
-		err = os.Remove(test_db_path)
-		if err != nil {
-			t.Errorf("Error removing test database: %s", err)
-		}
-	}()
+	defer testDbDeferredCleanup(t, testdb)
 
 	const (
-		id       int64 = 42
-		testLink       = "example.com"
+		testLink = "example.com"
 	)
 
-	// Links
-	// // Part Links
-	t.Run("Add/Get/RemoveLinksForPart", func(t *testing.T) {
-		// add
-		link, err := stor.AddLinkToPart(id, testLink)
-
-		assert.Nil(t, err)
-		assert.NotEqual(t, link.ID, 0)
-		assert.Equal(t, link.URL, testLink)
-
-		// get
-		links, err := stor.GetLinksForPart(id)
-
-		assert.Nil(t, err)
-		assert.NotNil(t, links)
-		assert.Len(t, links, 1)
-		assert.Equal(t, links[0], link)
-
-		// remove
-		err = stor.RemoveLinkFromPart(id, link.ID)
-
-		assert.Nil(t, err)
-
-		// verify removal
-		endLinks, err := stor.GetLinksForPart(id)
-
-		assert.Nil(t, err)
-		assert.NotNil(t, endLinks)
-		assert.Len(t, endLinks, 0)
-	})
-
-	// // Kit Links
-	t.Run("Add/Get/RemoveLinksForKit", func(t *testing.T) {
-		// add
-		kit, err := stor.AddLinkToKit(id, testLink)
-
-		assert.Nil(t, err)
-		assert.NotEqual(t, kit.ID, 0)
-		assert.Equal(t, kit.URL, testLink)
-
-		// get
-		kits, err := stor.GetLinksForKit(id)
-
-		assert.Nil(t, err)
-		assert.NotNil(t, kits)
-		assert.Len(t, kits, 1)
-		assert.Equal(t, kits[0], kit)
-
-		// remove
-		err = stor.RemoveLinkFromKit(id, kit.ID)
-
-		assert.Nil(t, err)
-
-		// verify removal
-		endKits, err := stor.GetLinksForKit(id)
-
-		assert.Nil(t, err)
-		assert.NotNil(t, endKits)
-		assert.Len(t, endKits, 0)
-	})
-
-	// Parts
 	t.Run("Parts", func(t *testing.T) {
-		// Add Part
-		inpart := Part{
-			ID:    0,
-			Kind:  "Resistor",
-			Name:  "1k",
-			Links: []Link(nil),
-		}
-		part, err := stor.AddPart(inpart)
+		var partId int64 = 0
+		var linkId int64 = 0
+		const partName = "4.7k"
+		const partKind = "Resistor"
 
-		assert.Nil(t, err)
-		assert.NotEqual(t, inpart.ID, part.ID)
-		assert.Equal(t, inpart.Kind, part.Kind)
-		assert.Equal(t, inpart.Name, part.Name)
+		t.Run("CreatePart", func(t *testing.T) {
+			pid, err := testdb.CreatePart(partName, partKind)
 
-		{ // Get Part
-			gpart, err := stor.GetPart(part.ID)
+			partId = pid
 
 			assert.Nil(t, err)
-			assert.Equal(t, part, gpart)
-		}
+			assert.Greater(t, pid, int64(0))
+		})
 
-		{ // GetParts
-			parts, err := stor.GetParts()
-
-			assert.Nil(t, err)
-			assert.Len(t, parts, 1)
-			assert.Equal(t, part, parts[0])
-		}
-
-		{
-			upart := Part{
-				ID:    part.ID,
-				Kind:  "Capacitor",
-				Name:  "47nf",
+		t.Run("GetPart", func(t *testing.T) {
+			expected := Part{
+				ID:    partId,
+				Kind:  partKind,
+				Name:  partName,
 				Links: []Link(nil),
 			}
 
-			updatedPart, err := stor.UpdatePart(upart)
+			part, err := testdb.GetPart(partId)
 
 			assert.Nil(t, err)
-			assert.Equal(t, upart, updatedPart)
+			assert.Equal(t, expected, part)
+		})
 
-			getUpdatedPart, err := stor.GetPart(upart.ID)
+		t.Run("AddLinkToPart", func(t *testing.T) {
+			lid, err := testdb.AddLinkToPart(testLink, partId)
 
-			assert.Nil(t, err)
-			assert.Equal(t, updatedPart, getUpdatedPart)
-		}
-
-		{
-			err := stor.DeletePart(part.ID)
+			linkId = lid
 
 			assert.Nil(t, err)
+			assert.Greater(t, linkId, int64(0))
+		})
 
-			parts, err := stor.GetParts()
+		t.Run("GetPartLinks", func(t *testing.T) {
+			expected := []Link{
+				{ID: linkId, URL: testLink},
+			}
+			links, err := testdb.GetPartLinks(partId)
 
 			assert.Nil(t, err)
-			assert.Len(t, parts, 0)
-		}
+			assert.Equal(t, expected, links)
+		})
 
+		t.Run("RemoveLinkFromPart", func(t *testing.T) {
+			err := testdb.RemoveLinkFromPart(linkId, partId)
+
+			assert.Nil(t, err)
+
+			links, err := testdb.GetPartLinks(partId)
+
+			assert.Nil(t, err)
+			assert.Len(t, links, 0)
+		})
+
+		t.Run("DeletePart", func(t *testing.T) {
+			emptyPart := Part{
+				ID:    0,
+				Kind:  "",
+				Name:  "",
+				Links: []Link(nil),
+			}
+			err := testdb.DeletePart(partId)
+
+			assert.Nil(t, err)
+
+			part, err := testdb.GetPart(partId)
+
+			assert.Nil(t, err)
+			assert.Equal(t, emptyPart, part)
+		})
+
+		t.Run("GetAllParts", func(t *testing.T) {
+			expectedParts := []Part{
+				{Name: "4.7k", Kind: "Resistor"},
+				{Name: "47uf", Kind: "Capacitor"},
+				{Name: "TL072", Kind: "IC"},
+			}
+
+			for i := range expectedParts {
+				part := &expectedParts[i]
+
+				id, err := testdb.CreatePart(part.Name, part.Kind)
+				if err != nil {
+					t.Fatalf("Error inserting test part (%d:%#v): %s",
+						i, part, err)
+				}
+
+				part.ID = id
+			}
+
+			parts, err := testdb.GetAllParts()
+
+			assert.Nil(t, err)
+			assert.Len(t, parts, len(expectedParts))
+			assert.Equal(t, expectedParts, parts)
+		})
 	})
 
-	// Kits
 	t.Run("Kits", func(t *testing.T) {
-		// Add sample parts
-		var testKitParts = []Part{
-			{Name: "1k", Kind: "Resistor"},
-			{Name: "4u7", Kind: "Capacitor"},
-			{Name: "TL072", Kind: "IC"},
-		}
+		var kitId int64 = 0
+		var linkId int64 = 0
+		const quantity = 7
+		const partId int64 = 42
+		const kitName = "The Burninator"
+		const partName = "4.7k"
+		const partKind = "Resistor"
 
-		for i, v := range testKitParts {
-			p, err := stor.AddPart(v)
-			testKitParts[i] = p
-			assert.Nilf(t, err, "Error inserting part into test db (%d:%#v): %s", i, v, err)
-		}
+		t.Run("CreateKit", func(t *testing.T) {
+			kid, err := testdb.CreateKit(kitName, testLink, testLink)
 
-		// Add Kit
-		inkit := Kit{
-			ID:        0,
-			Parts:     []KitPart(nil),
-			Name:      "TS808",
-			Schematic: "example.com/test/schematic",
-			Diagram:   "example.com/test-diagram",
-			Links:     []Link(nil),
-		}
-		kit, err := stor.AddKit(inkit)
-
-		assert.Nil(t, err)
-		assert.NotEqual(t, kit.ID, inkit.ID)
-		assert.Equal(t, inkit.Name, kit.Name)
-		assert.Equal(t, inkit.Schematic, kit.Schematic)
-		assert.Equal(t, inkit.Diagram, kit.Diagram)
-
-		{ // Get Kit
-			gotKit, err := stor.GetKit(kit.ID)
+			kitId = kid
 
 			assert.Nil(t, err)
-			assert.Equal(t, kit, gotKit)
-		}
+			assert.Greater(t, kid, int64(0))
+		})
 
-		{ // Get Kits
-			kits, err := stor.GetKits()
-
-			assert.Nil(t, err)
-			assert.Len(t, kits, 1)
-			assert.Equal(t, kit, kits[0])
-		}
-
-		{ // UpdateKit
-			ukit := Kit{
-				ID:        kit.ID,
+		t.Run("GetKit", func(t *testing.T) {
+			expectedKit := Kit{
+				ID:        kitId,
 				Parts:     []KitPart(nil),
-				Name:      kit.Name,
-				Schematic: "example.com/moved/test/schematic",
-				Diagram:   "example.com/moved/test/diagram",
-				Links:     []Link{},
+				Name:      kitName,
+				Schematic: testLink,
+				Diagram:   testLink,
+				Links:     []Link(nil),
 			}
-
-			updatedKit, err := stor.UpdateKit(ukit)
+			kit, err := testdb.GetKit(kitId)
 
 			assert.Nil(t, err)
-			assert.Equal(t, ukit, updatedKit)
-		}
+			assert.Equal(t, kit, expectedKit)
+		})
 
-		{ // AddPartToKit
-			// use parts added above
-			quantity := uint64(1)
-			expectedKitParts := make([]KitPart, len(testKitParts))
-
-			for i, v := range testKitParts {
-				err = stor.AddPartToKit(v.ID, kit.ID, quantity)
-
-				assert.Nilf(t, err, "Error adding test part (%d:%#v) to kit: %s", i, v, err)
-
-				expectedKitParts[i] = KitPart{
-					Part:     v,
-					Quantity: quantity,
-				}
-			}
-
-			kitParts, err := stor.GetKitParts(kit.ID)
+		t.Run("AddPartToKit", func(t *testing.T) {
+			err := testdb.AddPartToKit(partId, kitId, quantity)
 
 			assert.Nil(t, err)
-			assert.Equal(t, len(testKitParts), len(kitParts))
-			assert.Equal(t, expectedKitParts, kitParts)
-		}
+		})
 
-		{ // GetKitParts
+		t.Run("GetPartKitsForKit", func(t *testing.T) {
+			expectedParts := []kitPartRef{
+				{
+					kitId:    kitId,
+					partId:   partId,
+					quantity: quantity,
+				},
+			}
 
-		}
+			partRefs, err := testdb.GetKitPartsForKit(kitId)
 
-		{ // SetPartQuantityForKit
+			assert.Nil(t, err)
+			assert.Len(t, partRefs, len(expectedParts))
+			assert.Equal(t, partRefs, expectedParts)
+		})
 
-		}
+		t.Run("UpdatePartQuantity", func(t *testing.T) {
+			newquantity := quantity * uint64(2)
+			expectedParts := []kitPartRef{
+				{
+					kitId:    kitId,
+					partId:   partId,
+					quantity: newquantity,
+				},
+			}
 
-		{ // RemovePartFromKit
+			err := testdb.UpdatePartQuantity(partId, kitId, newquantity)
 
-		}
+			assert.Nil(t, err)
 
-		{ // DeleteKit
+			partsRefs, err := testdb.GetKitPartsForKit(kitId)
 
-		}
+			assert.Nil(t, err)
+			assert.Equal(t, partsRefs, expectedParts)
+		})
 
+		t.Run("RemovePartsFromKit", func(t *testing.T) {
+			err := testdb.RemovePartFromKit(partId, kitId)
+
+			assert.Nil(t, err)
+
+			partRefs, err := testdb.GetKitPartsForKit(kitId)
+
+			assert.Nil(t, err)
+			assert.Len(t, partRefs, 0)
+		})
+
+		t.Run("AddLinkToKit", func(t *testing.T) {
+			id, err := testdb.AddLinkToKit(testLink, kitId)
+
+			linkId = id
+
+			assert.Nil(t, err)
+			assert.Greater(t, id, int64(0))
+		})
+
+		t.Run("GetKitLinks", func(t *testing.T) {
+			expectedLink := Link{ID: linkId, URL: testLink}
+
+			links, err := testdb.GetKitLinks(kitId)
+
+			assert.Nil(t, err)
+			assert.Equal(t, links[0], expectedLink)
+		})
+
+		t.Run("RemoveLinkFromKit", func(t *testing.T) {
+			err := testdb.RemoveLinkFromKit(linkId, kitId)
+
+			assert.Nil(t, err)
+
+			links, err := testdb.GetKitLinks(kitId)
+
+			assert.Nil(t, err)
+			assert.Len(t, links, 0)
+		})
+
+		t.Run("RemoveKit", func(t *testing.T) {
+			emptyKit := Kit{
+				ID:        0,
+				Parts:     []KitPart(nil),
+				Name:      "",
+				Schematic: "",
+				Diagram:   "",
+				Links:     []Link(nil),
+			}
+
+			err := testdb.RemoveKit(kitId)
+
+			assert.Nil(t, err)
+
+			kit, err := testdb.GetKit(kitId)
+
+			assert.Nil(t, err)
+			assert.Equal(t, kit, emptyKit)
+		})
+
+		t.Run("GetAllKits", func(t *testing.T) {
+
+		})
 	})
 }
