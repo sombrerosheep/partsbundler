@@ -1,11 +1,5 @@
 package main
 
-// may pull up logic from the storage part
-// i'd like to thin out the storage part heavily
-// but i'm not sure how to maintain the interface
-// without making it too db-specific
-// does the data help me out?
-
 type IPartService interface {
 	GetAll() ([]Part, error)
 	Get(partId int64) (Part, error)
@@ -84,7 +78,7 @@ func (service SqlitePartService) Get(partId int64) (Part, error) {
 
 	links, err := service.db.GetPartLinks(part.ID)
 	if err != nil {
-		return Part{}, nil
+		return Part{}, err
 	}
 
 	part.Links = links
@@ -95,7 +89,7 @@ func (service SqlitePartService) Get(partId int64) (Part, error) {
 func (service SqlitePartService) AddLink(partId int64, link string) (Link, error) {
 	linkId, err := service.db.AddLinkToPart(link, partId)
 	if err != nil {
-		return Link{}, nil
+		return Link{}, err
 	}
 
 	l := Link{
