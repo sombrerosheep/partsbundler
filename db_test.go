@@ -143,14 +143,14 @@ func Test_sqlite(t *testing.T) {
 			assert.Len(t, links, 0)
 		})
 
-		t.Run("DeletePart", func(t *testing.T) {
+		t.Run("RemovePart", func(t *testing.T) {
 			emptyPart := Part{
 				ID:    0,
 				Kind:  "",
 				Name:  "",
 				Links: []Link(nil),
 			}
-			err := testdb.DeletePart(partId)
+			err := testdb.RemovePart(partId)
 
 			assert.Nil(t, err)
 

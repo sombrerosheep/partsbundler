@@ -16,7 +16,7 @@ type isqlitedb interface {
 	AddLinkToPart(link string, partId int64) (int64, error)
 	RemoveLinkFromPart(linkId, partId int64) error
 	CreatePart(name string, kind PartType) (int64, error)
-	DeletePart(partId int64) error
+	RemovePart(partId int64) error
 
 	GetKit(kitId int64) (Kit, error)
 	GetKitPartsForKit(kitId int64) ([]kitPartRef, error)
@@ -179,7 +179,7 @@ func (db sqlitedb) CreatePart(name string, kind PartType) (int64, error) {
 	return id, nil
 }
 
-func (db sqlitedb) DeletePart(partId int64) error {
+func (db sqlitedb) RemovePart(partId int64) error {
 	const stmt string = `
 		delete from parts where id = ?
 	`
