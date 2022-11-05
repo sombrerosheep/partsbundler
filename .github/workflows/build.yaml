@@ -1,4 +1,4 @@
-name: run test coverage
+name: build artifacts
 on: [push, pull_request]
 jobs:
   build:
