@@ -1,11 +1,29 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/sombrerosheep/partsbundler/internal/sqlite"
 
 	"github.com/sombrerosheep/partsbundler/pkg/core"
 	"github.com/sombrerosheep/partsbundler/pkg/service"
 )
+
+type KitNotFound struct {
+	kitId int64
+}
+
+func (k KitNotFound) Error() string {
+	return fmt.Sprintf("Kit %d not found", k.kitId)
+}
+
+type PartNotFound struct {
+	partId int64
+}
+
+func (p PartNotFound) Error() string {
+	return fmt.Sprintf("Part %d not found", p.partId)
+}
 
 type ReplState struct {
 	kits    []core.Kit
@@ -54,9 +72,21 @@ func (s ReplState) GetParts() []core.Part {
 }
 
 func (s ReplState) GetKit(kitId int64) (core.Kit, error) {
-	return core.Kit{}, nil
+	for i := range s.kits {
+		if s.kits[i].ID == kitId {
+			return s.kits[i], nil
+		}
+	}
+
+	return core.Kit{}, KitNotFound{kitId}
 }
 
 func (s ReplState) GetPart(partId int64) (core.Part, error) {
-	return core.Part{}, nil
+	for i := range s.parts {
+		if s.parts[i].ID == partId {
+			return s.parts[i], nil
+		}
+	}
+
+	return core.Part{}, PartNotFound{partId}
 }
