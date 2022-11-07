@@ -25,6 +25,14 @@ func (p PartNotFound) Error() string {
 	return fmt.Sprintf("Part %d not found", p.partId)
 }
 
+type LinkNotFound struct {
+	linkId, partId int64
+}
+
+func (l LinkNotFound) Error() string {
+	return fmt.Sprintf("Link %d not found on Part %d", l.linkId, l.partId)
+}
+
 type ReplState struct {
 	kits    []core.Kit
 	parts   []core.Part
@@ -63,7 +71,7 @@ func (s *ReplState) Refresh() error {
 	return nil
 }
 
-func (s *ReplState) GetKits() []core.Kit {
+func (s ReplState) GetKits() []core.Kit {
 	return s.kits[:]
 }
 
@@ -81,12 +89,83 @@ func (s ReplState) GetKit(kitId int64) (core.Kit, error) {
 	return core.Kit{}, KitNotFound{kitId}
 }
 
-func (s ReplState) GetPart(partId int64) (core.Part, error) {
+func (s ReplState) getPartRef(partId int64) (*core.Part, error) {
 	for i := range s.parts {
 		if s.parts[i].ID == partId {
-			return s.parts[i], nil
+			return &s.parts[i], nil
 		}
 	}
 
-	return core.Part{}, PartNotFound{partId}
+	return &core.Part{}, PartNotFound{partId}
+}
+
+func (s ReplState) GetPart(partId int64) (core.Part, error) {
+	p, err := s.getPartRef(partId)
+	if err != nil {
+		return core.Part{}, err
+	}
+
+	if p == nil {
+		return core.Part{}, PartNotFound{partId}
+	}
+
+	return *p, nil
+}
+
+func (s *ReplState) CreatePart(name string, kind core.PartType) (core.Part, error) {
+	part, err := s.bundler.Parts.New(name, kind)
+	if err != nil {
+		return part, err
+	}
+
+	s.parts = append(s.parts, part)
+
+	return part, nil
+}
+
+func (s *ReplState) AddLinkToPart(partId int64, link string) (core.Link, error) {
+	part, err := s.getPartRef(partId)
+	if err != nil {
+		return core.Link{}, PartNotFound{partId}
+	}
+
+	newLink, err := s.bundler.Parts.AddLink(partId, link)
+	if err != nil {
+		return core.Link{}, err
+	}
+
+	part.Links = append(part.Links, newLink)
+
+	return newLink, nil
+}
+
+func (s *ReplState) RemoveLinkFromPart(partId, linkId int64) error {
+	part, err := s.getPartRef(partId)
+	if err != nil {
+		return err
+	}
+
+	err = s.bundler.Parts.RemoveLink(partId, linkId)
+	if err != nil {
+		return err
+	}
+
+	// update state
+	linkIndex := int64(-1)
+	for i := range part.Links {
+		if part.Links[i].ID == linkId {
+			linkIndex = int64(i)
+			break
+		}
+	}
+
+	if linkIndex < 0 {
+		// this would mean the db had the entry (and didnt error) but
+		// the state did not. The state is most likely out of date.
+		return LinkNotFound{linkId, partId}
+	}
+
+	part.Links = append(part.Links[:linkIndex], part.Links[linkIndex + 1:]...)
+
+	return nil
 }
