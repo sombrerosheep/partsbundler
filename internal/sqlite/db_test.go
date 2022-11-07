@@ -228,6 +228,14 @@ func Test_sqlite(t *testing.T) {
 			assert.Nil(t, err)
 		})
 
+		t.Run("GetKitPartUsage", func(t *testing.T) {
+			kitIds, err := testdb.GetKitPartUsage(partId)
+
+			assert.Nil(t, err)
+			assert.Len(t, kitIds, 1)
+			assert.Equal(t, []int64{kitId}, kitIds)
+		})
+
 		t.Run("GetPartKitsForKit", func(t *testing.T) {
 			expectedParts := []kitPartRef{
 				{

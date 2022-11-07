@@ -104,6 +104,15 @@ func (service SqliteKitService) AddPart(kitId, partId int64, quantity uint64) er
 	return service.db.AddPartToKit(partId, kitId, quantity)
 }
 
+func (service SqliteKitService) GetPartUsage(partId int64) ([]int64, error) {
+	kitIds, err := service.db.GetKitPartUsage(partId)
+	if err != nil {
+		return nil, err
+	}
+
+	return kitIds, nil
+}
+
 func (service SqliteKitService) SetPartQuantity(kitId int64, partId int64, quantity uint64) error {
 	return service.db.UpdatePartQuantity(partId, kitId, quantity)
 }

@@ -98,21 +98,27 @@ func (s *stubPartService) RemoveLink(linkId, partId int64) error {
 	return nil
 }
 
+func (s *stubPartService) Delete(partId int64) error {
+	return nil
+}
+
 func (s *stubKitService) GetAll() ([]core.Kit, error) {
 	return fakeKits[:], nil
 }
 
-func Test_GetKits(t *testing.T) {
-	t.Run("should return kits", func(t *testing.T) {
-		sut := &ReplState{bundler: stubBundlerService}
-		sut.Refresh()
+func (s *stubKitService) GetPartUsage(partId int64) ([]int64, error) {
+	ids := []int64{}
 
-		expected := fakeKits[:]
+	for _, k := range fakeKits {
+		for _, p := range k.Parts {
+			if p.ID == partId {
+				ids = append(ids, k.ID)
+				continue
+			}
+		}
+	}
 
-		kits := sut.GetKits()
-
-		assert.Equal(t, expected, kits)
-	})
+	return ids, nil
 }
 
 func Test_GetParts(t *testing.T) {
@@ -126,37 +132,6 @@ func Test_GetParts(t *testing.T) {
 		parts := sut.GetParts()
 
 		assert.Equal(t, expected, parts)
-	})
-}
-
-func Test_GetKit(t *testing.T) {
-	t.Run("should return each kit by id", func(t *testing.T) {
-		sut := &ReplState{bundler: stubBundlerService}
-		sut.Refresh()
-
-		kits := sut.GetKits()
-
-		assert.Len(t, kits, len(fakeKits))
-		for _, k := range kits {
-			expected := k
-
-			actual, err := sut.GetKit(expected.ID)
-
-			assert.Nil(t, err)
-			assert.Equal(t, expected, actual)
-		}
-	})
-
-	t.Run("should return KitNotFound when requested kit is not in state", func(t *testing.T) {
-		sut := &ReplState{bundler: stubBundlerService}
-		sut.Refresh()
-
-		kitId := int64(99)
-
-		_, err := sut.GetKit(kitId)
-
-		assert.IsType(t, KitNotFound{}, err)
-		assert.Equal(t, err.(KitNotFound).kitId, kitId)
 	})
 }
 
@@ -261,7 +236,7 @@ func Test_AddLinkToPart(t *testing.T) {
 }
 
 func Test_RemoveLinkFromPart(t *testing.T) {
-	t.Run("should remove link from part", func (t *testing.T) {
+	t.Run("should remove link from part", func(t *testing.T) {
 		sut := &ReplState{bundler: stubBundlerService}
 		sut.Refresh()
 
@@ -281,12 +256,12 @@ func Test_RemoveLinkFromPart(t *testing.T) {
 	t.Run("should return PartNotFound when partId doesn't exist", func(t *testing.T) {
 		sut := &ReplState{bundler: stubBundlerService}
 		sut.Refresh()
-		
+
 		partId := int64(999)
 		linkId := int64(1)
 
 		err := sut.RemoveLinkFromPart(partId, linkId)
-		
+
 		assert.NotNil(t, err)
 		assert.IsType(t, PartNotFound{}, err)
 		assert.Equal(t, partId, err.(PartNotFound).partId)
@@ -295,15 +270,80 @@ func Test_RemoveLinkFromPart(t *testing.T) {
 	t.Run("should return LinkNotFound when partId doesn't include linkId", func(t *testing.T) {
 		sut := &ReplState{bundler: stubBundlerService}
 		sut.Refresh()
-		
+
 		partId := int64(1)
 		linkId := int64(999)
 
 		err := sut.RemoveLinkFromPart(partId, linkId)
-		
+
 		assert.NotNil(t, err)
 		assert.IsType(t, LinkNotFound{}, err)
 		assert.Equal(t, partId, err.(LinkNotFound).partId)
 		assert.Equal(t, linkId, err.(LinkNotFound).linkId)
+	})
+}
+
+func Test_DeletePart(t *testing.T) {
+	t.Run("should remove part", func(t *testing.T) {
+		sut := &ReplState{bundler: stubBundlerService}
+		sut.Refresh()
+
+		part, err := sut.CreatePart("test", "Resistor")
+		
+		assert.Nil(t, err)
+
+		err = sut.DeletePart(part.ID)
+
+		assert.Nil(t, err)
+
+		_, err = sut.GetPart(part.ID)
+
+		assert.NotNil(t, err)
+		assert.IsType(t, PartNotFound{}, err)
+		assert.Equal(t, part.ID, err.(PartNotFound).partId)
+	})
+}
+
+func Test_GetKits(t *testing.T) {
+	t.Run("should return kits", func(t *testing.T) {
+		sut := &ReplState{bundler: stubBundlerService}
+		sut.Refresh()
+
+		expected := fakeKits[:]
+
+		kits := sut.GetKits()
+
+		assert.Equal(t, expected, kits)
+	})
+}
+
+func Test_GetKit(t *testing.T) {
+	t.Run("should return each kit by id", func(t *testing.T) {
+		sut := &ReplState{bundler: stubBundlerService}
+		sut.Refresh()
+
+		kits := sut.GetKits()
+
+		assert.Len(t, kits, len(fakeKits))
+		for _, k := range kits {
+			expected := k
+
+			actual, err := sut.GetKit(expected.ID)
+
+			assert.Nil(t, err)
+			assert.Equal(t, expected, actual)
+		}
+	})
+
+	t.Run("should return KitNotFound when requested kit is not in state", func(t *testing.T) {
+		sut := &ReplState{bundler: stubBundlerService}
+		sut.Refresh()
+
+		kitId := int64(99)
+
+		_, err := sut.GetKit(kitId)
+
+		assert.IsType(t, KitNotFound{}, err)
+		assert.Equal(t, err.(KitNotFound).kitId, kitId)
 	})
 }

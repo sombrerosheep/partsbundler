@@ -57,6 +57,16 @@ func (db greenSqliteMock) AddPartToKit(partId, kitId int64, quantity uint64) err
 	return nil
 }
 
+func (db greenSqliteMock) GetKitPartUsage(partId int64) ([]int64, error) {
+	ids := []int64{}
+
+	for _, v := range exampleKits {
+		ids = append(ids, v.ID)
+	}
+
+	return ids, nil
+}
+
 func (db greenSqliteMock) UpdatePartQuantity(partId, kitId int64, quantity uint64) error {
 	return nil
 }
@@ -191,6 +201,27 @@ func Test_sqlitekitservice_AddPart(t *testing.T) {
 		err := sut.RemovePart(exampleKits[0].ID, exampleParts[0].ID)
 
 		assert.Nil(t, err)
+	})
+}
+
+func Test_GetPartUsage(t *testing.T) {
+	t.Run("When no errors are returned", func(t *testing.T) {
+		sut := SqliteKitService{
+			db: greenSqliteMock{},
+			partservice: SqlitePartService{
+				db: greenSqliteMock{},
+			},
+		}
+
+		expectedIds := []int64{
+			exampleKits[0].ID,
+			exampleKits[1].ID,
+		}
+
+		ids, err := sut.GetPartUsage(1)
+
+		assert.Nil(t, err)
+		assert.Equal(t, expectedIds, ids)
 	})
 }
 

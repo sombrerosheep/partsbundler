@@ -23,6 +23,7 @@ type IKitService interface {
 	RemoveLink(kitId int64, linkId int64) error
 
 	AddPart(kitId int64, partId int64, quantity uint64) error
+	GetPartUsage(partId int64) ([]int64, error)
 	SetPartQuantity(kitId int64, partId int64, quantity uint64) error
 	RemovePart(kitId int64, partId int64) error
 

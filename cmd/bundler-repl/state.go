@@ -33,6 +33,14 @@ func (l LinkNotFound) Error() string {
 	return fmt.Sprintf("Link %d not found on Part %d", l.linkId, l.partId)
 }
 
+type PartInUse struct {
+	partId int64
+}
+
+func (p PartInUse) Error() string {
+	return fmt.Sprintf("Part %d is in use by one or more kits", p.partId)
+}
+
 type ReplState struct {
 	kits    []core.Kit
 	parts   []core.Part
@@ -165,7 +173,44 @@ func (s *ReplState) RemoveLinkFromPart(partId, linkId int64) error {
 		return LinkNotFound{linkId, partId}
 	}
 
-	part.Links = append(part.Links[:linkIndex], part.Links[linkIndex + 1:]...)
+	part.Links = append(part.Links[:linkIndex], part.Links[linkIndex+1:]...)
+
+	return nil
+}
+
+func (s *ReplState) DeletePart(partId int64) error {
+	part, err := s.getPartRef(partId)
+	if err != nil {
+		return err
+	}
+
+	kitIds, err := s.bundler.Kits.GetPartUsage(part.ID)
+	if err != nil {
+		return err
+	}
+
+	if len(kitIds) > 0 {
+		return PartInUse{partId}
+	}
+
+	err = s.bundler.Parts.Delete(partId)
+	if err != nil {
+		return err
+	}
+
+	partIndex := -1
+	for i := range s.parts {
+		if s.parts[i].ID == partId {
+			partIndex = i
+			break
+		}	
+	}
+
+	if partIndex < 0 {
+		return PartNotFound{partId}
+	}
+
+	s.parts = append(s.parts[:partIndex], s.parts[partIndex+1:]...)
 
 	return nil
 }

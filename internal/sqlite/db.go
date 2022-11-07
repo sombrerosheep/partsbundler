@@ -20,6 +20,7 @@ type isqlitedb interface {
 	RemovePart(partId int64) error
 
 	GetKit(kitId int64) (core.Kit, error)
+	GetKitPartUsage(partId int64) ([]int64, error)
 	GetKitPartsForKit(kitId int64) ([]kitPartRef, error)
 	GetAllKits() ([]core.Kit, error)
 	AddPartToKit(partId, kitId int64, quantity uint64) error
@@ -206,6 +207,27 @@ func (db sqlitedb) GetKit(kitId int64) (core.Kit, error) {
 	}
 
 	return kit, nil
+}
+
+func (db sqlitedb) GetKitPartUsage(partId int64) ([]int64, error) {
+	const query string = `
+		select kitId from kitparts
+			where partId = ?
+	`
+
+	ids := []int64{}
+	rows, err := db.db.Query(query, partId)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var id int64
+		rows.Scan(&id)
+		ids = append(ids, id)
+	}
+
+	return ids, nil
 }
 
 type kitPartRef struct {
