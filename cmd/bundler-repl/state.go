@@ -26,11 +26,11 @@ func (p PartNotFound) Error() string {
 }
 
 type LinkNotFound struct {
-	linkId, partId int64
+	linkId, ownerId int64
 }
 
 func (l LinkNotFound) Error() string {
-	return fmt.Sprintf("Link %d not found on Part %d", l.linkId, l.partId)
+	return fmt.Sprintf("Link %d not found on Part %d", l.linkId, l.ownerId)
 }
 
 type PartInUse struct {
@@ -79,22 +79,8 @@ func (s *ReplState) Refresh() error {
 	return nil
 }
 
-func (s ReplState) GetKits() []core.Kit {
-	return s.kits[:]
-}
-
 func (s ReplState) GetParts() []core.Part {
 	return s.parts[:]
-}
-
-func (s ReplState) GetKit(kitId int64) (core.Kit, error) {
-	for i := range s.kits {
-		if s.kits[i].ID == kitId {
-			return s.kits[i], nil
-		}
-	}
-
-	return core.Kit{}, KitNotFound{kitId}
 }
 
 func (s ReplState) getPartRef(partId int64) (*core.Part, error) {
@@ -203,7 +189,7 @@ func (s *ReplState) DeletePart(partId int64) error {
 		if s.parts[i].ID == partId {
 			partIndex = i
 			break
-		}	
+		}
 	}
 
 	if partIndex < 0 {
@@ -213,4 +199,98 @@ func (s *ReplState) DeletePart(partId int64) error {
 	s.parts = append(s.parts[:partIndex], s.parts[partIndex+1:]...)
 
 	return nil
+}
+
+func (s ReplState) GetKits() []core.Kit {
+	return s.kits[:]
+}
+
+func (s ReplState) GetKit(kitId int64) (core.Kit, error) {
+	for i := range s.kits {
+		if s.kits[i].ID == kitId {
+			return s.kits[i], nil
+		}
+	}
+
+	return core.Kit{}, KitNotFound{kitId}
+}
+
+func (s *ReplState) CreateKit(name, schematic, diagram string) (core.Kit, error) {
+	kit, err := s.bundler.Kits.New(name, schematic, diagram)
+	if err != nil {
+		return core.Kit{}, err
+	}
+
+	s.kits = append(s.kits, kit)
+
+	return kit, nil
+}
+
+func (s ReplState) getKitRef(kitId int64) (*core.Kit, error) {
+	for i := range s.kits {
+		if s.kits[i].ID == kitId {
+			return &s.kits[i], nil
+		}
+	}
+
+	return nil, KitNotFound{kitId}
+}
+
+func (s *ReplState) AddLinkToKit(kitId int64, link string) (core.Link, error) {
+	newLink, err := s.bundler.Kits.AddLink(kitId, link)
+	if err != nil {
+		return core.Link{}, err
+	}
+
+	ref, err := s.getKitRef(kitId)
+	if err != nil {
+		return core.Link{}, err
+	}
+
+	ref.Links = append(ref.Links, newLink)
+
+	return newLink, nil
+}
+
+func (s *ReplState) RemoveLinkFromKit(kitId, linkId int64) error {
+	kit, err := s.getKitRef(kitId)
+	if err != nil {
+		return err
+	}
+
+	err = s.bundler.Kits.RemoveLink(kitId, linkId)
+	if err != nil {
+		return err
+	}
+
+	linkIndex := int64(-1)
+	for i, v := range kit.Links {
+		if v.ID == linkId {
+			linkIndex = int64(i)
+		}
+	}
+
+	if linkIndex > 0 {
+		return LinkNotFound{linkId, kitId}
+	}
+
+	kit.Links = append(kit.Links[:linkIndex], kit.Links[linkIndex+1:]...)
+
+	return nil
+}
+
+func (s *ReplState) AddPartToKit(partId, kitId int64, quantity uint64) error {
+	return fmt.Errorf("Not implmented")
+}
+
+func (s *ReplState) UpdatePartQuantity(partId, kitId int64, quantity uint64) error {
+	return fmt.Errorf("Not implmented")
+}
+
+func (s *ReplState) RemovePartFromKit(partId, kitId int64) error {
+	return fmt.Errorf("Not implmented")
+}
+
+func (s *ReplState) DeleteKit(kitId int64) error {
+	return fmt.Errorf("Not implmented")
 }

@@ -121,6 +121,38 @@ func (s *stubKitService) GetPartUsage(partId int64) ([]int64, error) {
 	return ids, nil
 }
 
+func (s *stubKitService) New(name, schematic, diagram string) (core.Kit, error) {
+	kitId := kitIdCounter
+	kitIdCounter += 1
+
+	kit := core.Kit{
+		ID:        kitId,
+		Parts:     []core.KitPart{},
+		Name:      name,
+		Schematic: schematic,
+		Diagram:   diagram,
+		Links:     []core.Link{},
+	}
+
+	return kit, nil
+}
+
+func (s *stubKitService) AddLink(kitId int64, link string) (core.Link, error) {
+	linkId := linkIdCounter
+	linkIdCounter += 1
+
+	newLink := core.Link{
+		ID: linkId,
+		URL: link,
+	}
+
+	return newLink, nil
+}
+
+func (s *stubKitService) RemoveLink(kitId int64, linkId int64) error {
+	return nil
+}
+
 func Test_GetParts(t *testing.T) {
 	t.Run("should return parts", func(t *testing.T) {
 
@@ -278,7 +310,7 @@ func Test_RemoveLinkFromPart(t *testing.T) {
 
 		assert.NotNil(t, err)
 		assert.IsType(t, LinkNotFound{}, err)
-		assert.Equal(t, partId, err.(LinkNotFound).partId)
+		assert.Equal(t, partId, err.(LinkNotFound).ownerId)
 		assert.Equal(t, linkId, err.(LinkNotFound).linkId)
 	})
 }
@@ -289,7 +321,7 @@ func Test_DeletePart(t *testing.T) {
 		sut.Refresh()
 
 		part, err := sut.CreatePart("test", "Resistor")
-		
+
 		assert.Nil(t, err)
 
 		err = sut.DeletePart(part.ID)
@@ -301,6 +333,19 @@ func Test_DeletePart(t *testing.T) {
 		assert.NotNil(t, err)
 		assert.IsType(t, PartNotFound{}, err)
 		assert.Equal(t, part.ID, err.(PartNotFound).partId)
+	})
+
+	t.Run("should return PartInUse when part is in use by a kit", func(t *testing.T) {
+		sut := &ReplState{bundler: stubBundlerService}
+		sut.Refresh()
+
+		partId := fakeParts[0].ID
+
+		err := sut.DeletePart(partId)
+
+		assert.NotNil(t, err)
+		assert.IsType(t, PartInUse{}, err)
+		assert.Equal(t, partId, err.(PartInUse).partId)
 	})
 }
 
@@ -346,4 +391,98 @@ func Test_GetKit(t *testing.T) {
 		assert.IsType(t, KitNotFound{}, err)
 		assert.Equal(t, err.(KitNotFound).kitId, kitId)
 	})
+}
+
+func Test_CreateKit(t *testing.T) {
+	t.Run("should create kit", func(t *testing.T) {
+		sut := &ReplState{bundler: stubBundlerService}
+		sut.Refresh()
+
+		name := "my kit"
+		schematic := "example.com/mykit/schematic"
+		diagram := "example.com/mykit/diagram"
+
+		kit, err := sut.CreateKit(name, schematic, diagram)
+
+		assert.Nil(t, err)
+		assert.Greater(t, kit.ID, int64(0))
+		assert.Equal(t, name, kit.Name)
+		assert.Equal(t, kit.Schematic, schematic)
+		assert.Equal(t, kit.Diagram, diagram)
+
+		gotKit, err := sut.GetKit(kit.ID)
+
+		assert.Nil(t, err)
+		assert.Equal(t, kit, gotKit)
+	})
+}
+
+func Test_AddLinkToKit(t *testing.T) {
+	t.Run("should add link and add it to the kit", func(t *testing.T) {
+		sut := &ReplState{bundler: stubBundlerService}
+		sut.Refresh()
+
+		url := "example.com/test"
+		kitId := fakeKits[0].ID
+
+		link, err := sut.AddLinkToKit(kitId, url)
+
+		assert.Nil(t, err)
+		assert.Equal(t, url, link.URL)
+		assert.Greater(t, link.ID, int64(0))
+
+		kit, err := sut.GetKit(kitId)
+
+		assert.Nil(t, err)
+		assert.Condition(t, linksContainsLink(kit.Links, link))
+	})
+
+	t.Run("should return KitNotFound when kitId doesn't exist", func(t *testing.T) {
+		sut := &ReplState{bundler: stubBundlerService}
+		sut.Refresh()
+
+		url := "example.com/test"
+		kitId := int64(99)
+
+		_, err := sut.AddLinkToKit(kitId, url)
+
+		assert.NotNil(t, err)
+		assert.IsType(t, KitNotFound{}, err)
+		assert.Equal(t, err.(KitNotFound).kitId, kitId)
+	})
+}
+
+func Test_RemoveLinkFromKit(t *testing.T) {
+	t.Run("should remove link from Kit", func(t *testing.T) {
+		sut := &ReplState{bundler: stubBundlerService}
+		sut.Refresh()
+
+		kit := fakeKits[0]
+		link := kit.Links[0]
+
+		err := sut.RemoveLinkFromKit(kit.ID, link.ID)
+
+		assert.Nil(t, err)
+
+		gotKit, err := sut.GetKit(kit.ID)
+
+		assert.Nil(t, err)
+		assert.False(t, linksContainsLink(gotKit.Links, link)())
+	})
+}
+
+func Test_AddPartToKit(t *testing.T) {
+
+}
+
+func Test_UpdatePartQuantity(t *testing.T) {
+
+}
+
+func Test_RemovePartFromKit(t *testing.T) {
+
+}
+
+func Test_DeleteKit(t *testing.T) {
+
 }
