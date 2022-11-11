@@ -280,17 +280,102 @@ func (s *ReplState) RemoveLinkFromKit(kitId, linkId int64) error {
 }
 
 func (s *ReplState) AddPartToKit(partId, kitId int64, quantity uint64) error {
-	return fmt.Errorf("Not implmented")
+	kit, err := s.getKitRef(kitId)
+	if err != nil {
+		return err
+	}
+
+	part, err := s.GetPart(partId)
+	if err != nil {
+		return err
+	}
+
+	err = s.bundler.Kits.AddPart(kitId, partId, quantity)
+	if err != nil {
+		return err
+	}
+
+	kitPart := core.KitPart{
+		Part:     part,
+		Quantity: quantity,
+	}
+
+	kit.Parts = append(kit.Parts, kitPart)
+
+	return nil
 }
 
 func (s *ReplState) UpdatePartQuantity(partId, kitId int64, quantity uint64) error {
-	return fmt.Errorf("Not implmented")
+	kit, err := s.getKitRef(kitId)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.GetPart(partId)
+	if err != nil {
+		return err
+	}
+
+	err = s.bundler.Kits.SetPartQuantity(kitId, partId, quantity)
+	if err != nil {
+		return err
+	}
+
+	for i := range kit.Parts {
+		if kit.Parts[i].ID == partId {
+			kit.Parts[i].Quantity = quantity
+			break
+		}
+	}
+
+	return nil
 }
 
 func (s *ReplState) RemovePartFromKit(partId, kitId int64) error {
-	return fmt.Errorf("Not implmented")
+	kit, err := s.getKitRef(kitId)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.GetPart(partId)
+	if err != nil {
+		return err
+	}
+
+	err = s.bundler.Kits.RemovePart(kitId, partId)
+	if err != nil {
+		return err
+	}
+
+	partIndex := int64(-1)
+	for i, p := range kit.Parts {
+		if p.ID == partId {
+			partIndex = int64(i)
+		}
+	}
+
+	if partIndex < 0 {
+		return PartNotFound{partId}
+	}
+
+	kit.Parts = append(kit.Parts[:partIndex], kit.Parts[partIndex+1:]...)
+
+	return nil
 }
 
 func (s *ReplState) DeleteKit(kitId int64) error {
-	return fmt.Errorf("Not implmented")
+	kitIndex := int64(-1)
+	for i := range s.kits {
+		if s.kits[i].ID == kitId {
+			kitIndex = int64(i)
+		}
+	}
+
+	if kitIndex < 0 {
+		return KitNotFound{kitId}
+	}
+
+	s.kits = append(s.kits[:kitIndex], s.kits[kitIndex+1:]...)
+
+	return nil
 }
