@@ -142,7 +142,7 @@ func (s *stubKitService) AddLink(kitId int64, link string) (core.Link, error) {
 	linkIdCounter += 1
 
 	newLink := core.Link{
-		ID: linkId,
+		ID:  linkId,
 		URL: link,
 	}
 
@@ -489,16 +489,16 @@ func Test_RemoveLinkFromKit(t *testing.T) {
 
 func Test_AddPartToKit(t *testing.T) {
 	t.Run("should add kit to part", func(t *testing.T) {
-		
-		sut := &ReplState{bundler: stubBundlerService}
+
+    sut := &ReplState{bundler: stubBundlerService}
 		sut.Refresh()
-		
+
 		kitId := fakeKits[0].ID
 		partName := "my part"
 		quantity := uint64(42)
-		
+
 		newPart, err := sut.CreatePart(partName, "Resistor")
-		
+
 		assert.Nil(t, err)
 
 		err = sut.AddPartToKit(newPart.ID, kitId, quantity)
@@ -506,7 +506,7 @@ func Test_AddPartToKit(t *testing.T) {
 		assert.Nil(t, err)
 
 		refs, err := sut.bundler.Kits.GetPartUsage(newPart.ID)
-		
+
 		assert.Nil(t, err)
 
 		assert.Condition(t, func() bool {
@@ -515,12 +515,12 @@ func Test_AddPartToKit(t *testing.T) {
 					return true
 				}
 			}
-			
+
 			return false
 		})
 	})
 
-	t.Run("should return KitNotFound when kit doesn't exist", func (t *testing.T){
+	t.Run("should return KitNotFound when kit doesn't exist", func(t *testing.T) {
 		sut := &ReplState{bundler: stubBundlerService}
 		sut.Refresh()
 
@@ -534,7 +534,7 @@ func Test_AddPartToKit(t *testing.T) {
 		assert.Equal(t, kitId, err.(KitNotFound).kitId)
 	})
 
-	t.Run("should return PartNotFound when part doesn't exist", func( t *testing.T) {
+	t.Run("should return PartNotFound when part doesn't exist", func(t *testing.T) {
 		sut := &ReplState{bundler: stubBundlerService}
 		sut.Refresh()
 
@@ -550,8 +550,8 @@ func Test_AddPartToKit(t *testing.T) {
 }
 
 func Test_UpdatePartQuantity(t *testing.T) {
-	t.Run("should updated part quantity", func(t *testing.T){
-		
+	t.Run("should updated part quantity", func(t *testing.T) {
+
 		sut := &ReplState{bundler: stubBundlerService}
 		sut.Refresh()
 
@@ -560,20 +560,20 @@ func Test_UpdatePartQuantity(t *testing.T) {
 		newQty := part.Quantity * 2
 
 		err := sut.UpdatePartQuantity(part.ID, kit.ID, newQty)
-		
+
 		assert.Nil(t, err)
-		
+
 		gotKit, err := sut.GetKit(kit.ID)
 
 		assert.Nil(t, err)
-		
+
 		var thatPart *core.KitPart = nil
 		for i := range gotKit.Parts {
 			if gotKit.Parts[i].ID == part.ID {
 				thatPart = &gotKit.Parts[i]
 			}
 		}
-		
+
 		assert.NotNil(t, thatPart)
 		assert.Equal(t, newQty, thatPart.Quantity)
 	})
@@ -610,7 +610,7 @@ func Test_UpdatePartQuantity(t *testing.T) {
 }
 
 func Test_RemovePartFromKit(t *testing.T) {
-	t.Run("should remove part from kit", func(t *testing.T){
+	t.Run("should remove part from kit", func(t *testing.T) {
 		sut := &ReplState{bundler: stubBundlerService}
 		sut.Refresh()
 
@@ -665,7 +665,7 @@ func Test_RemovePartFromKit(t *testing.T) {
 }
 
 func Test_DeleteKit(t *testing.T) {
-	t.Run("should delete kit", func(t *testing.T){
+	t.Run("should delete kit", func(t *testing.T) {
 		sut := &ReplState{bundler: stubBundlerService}
 		sut.Refresh()
 
@@ -682,7 +682,7 @@ func Test_DeleteKit(t *testing.T) {
 		assert.Equal(t, kitId, err.(KitNotFound).kitId)
 	})
 
-	t.Run("should return KitNotFound when kit doesn't exist", func(t *testing.T){
+	t.Run("should return KitNotFound when kit doesn't exist", func(t *testing.T) {
 		sut := &ReplState{bundler: stubBundlerService}
 		sut.Refresh()
 
