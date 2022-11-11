@@ -12,182 +12,171 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const test_db_path = "./import/test.db"
-const test_db_setup = "./import/setup.sql"
+const (
+  test_db_setup = "./import/setup.sql"
+  testLink = "example.com"
+)
 
-func TestMain(m *testing.M) {
-	code, err := run(m)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	os.Exit(code)
-}
-
-func run(m *testing.M) (int, error) {
+func getTestDbConnection(t *testing.T, dbPath string) (*sqlitedb, error) {
 	// setup test database
-	db, err := sql.Open("sqlite3", test_db_path)
+	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
-		return -1, fmt.Errorf("Error connecting to test db (%s): %s", test_db_path, err)
+		return nil, fmt.Errorf("Error connecting to test db (%s): %s", dbPath, err)
 	}
 
 	// prepare test.db
 	b, err := ioutil.ReadFile(test_db_setup)
 	if err != nil {
-		return -1, fmt.Errorf("Error reading setup script: %s", err)
+		return nil, fmt.Errorf("Error reading setup script: %s", err)
 	}
 
 	// execute setup script
 	_, err = db.Exec(string(b))
 	if err != nil {
-		return -1, fmt.Errorf("Error executing setup script: %s", err)
+		return nil, fmt.Errorf("Error executing setup script: %s", err)
 	}
 
-	// teardown
-	defer func() {
-		db.Close()
-	}()
-
-	return m.Run(), nil
-}
-
-func getTestDbConnection(t *testing.T) (sqlitedb, error) {
 	var testdb = sqlitedb{
-		DBFilePath: test_db_path,
-	}
-	err := testdb.Connect()
-	if err != nil {
-		return testdb, nil
+		DBFilePath: dbPath,
 	}
 
-	return testdb, nil
+	err = testdb.Connect()
+	if err != nil {
+		return &testdb, nil
+	}
+
+	return &testdb, nil
 }
 
-func testDbDeferredCleanup(t *testing.T, db sqlitedb) {
+func testDbDeferredCleanup(t *testing.T, db *sqlitedb, dbPath string) {
 	err := db.Close()
 	if err != nil {
 		t.Errorf("Error closing test database: %s", err)
 	}
 
-	err = os.Remove(test_db_path)
+	err = os.Remove(dbPath)
 	if err != nil {
 		t.Errorf("Error removing test database: %s", err)
 	}
 }
 
-func Test_sqlite(t *testing.T) {
-	testdb, err := getTestDbConnection(t)
+func TestSqliteParts(t *testing.T) {
+	const dbPath = "./import/dbparttest.db"
+	testdb, err := getTestDbConnection(t, dbPath)
 	if err != nil {
-		t.Fatalf("Error connecting to test db (%s): %s", test_db_path, err)
+		t.Fatalf("Error connecting to test db (%s): %s", dbPath, err)
 	}
-	defer testDbDeferredCleanup(t, testdb)
+	defer testDbDeferredCleanup(t, testdb, dbPath)
 
-	const (
-		testLink = "example.com"
-	)
+	var partId int64 = 0
+	var linkId int64 = 0
+	const partName = "4.7k"
+	const partKind = "Resistor"
 
-	t.Run("Parts", func(t *testing.T) {
-		var partId int64 = 0
-		var linkId int64 = 0
-		const partName = "4.7k"
-		const partKind = "Resistor"
+	t.Run("CreatePart", func(t *testing.T) {
+		pid, err := testdb.CreatePart(partName, partKind)
 
-		t.Run("CreatePart", func(t *testing.T) {
-			pid, err := testdb.CreatePart(partName, partKind)
+		partId = pid
 
-			partId = pid
-
-			assert.Nil(t, err)
-			assert.Greater(t, pid, int64(0))
-		})
-
-		t.Run("GetPart", func(t *testing.T) {
-			expected := core.Part{
-				ID:    partId,
-				Kind:  partKind,
-				Name:  partName,
-				Links: []core.Link(nil),
-			}
-
-			part, err := testdb.GetPart(partId)
-
-			assert.Nil(t, err)
-			assert.Equal(t, expected, part)
-		})
-
-		t.Run("AddLinkToPart", func(t *testing.T) {
-			lid, err := testdb.AddLinkToPart(testLink, partId)
-
-			linkId = lid
-
-			assert.Nil(t, err)
-			assert.Greater(t, linkId, int64(0))
-		})
-
-		t.Run("GetPartLinks", func(t *testing.T) {
-			expected := []core.Link{
-				{ID: linkId, URL: testLink},
-			}
-			links, err := testdb.GetPartLinks(partId)
-
-			assert.Nil(t, err)
-			assert.Equal(t, expected, links)
-		})
-
-		t.Run("RemoveLinkFromPart", func(t *testing.T) {
-			err := testdb.RemoveLinkFromPart(linkId, partId)
-
-			assert.Nil(t, err)
-
-			links, err := testdb.GetPartLinks(partId)
-
-			assert.Nil(t, err)
-			assert.Len(t, links, 0)
-		})
-
-		t.Run("RemovePart", func(t *testing.T) {
-			emptyPart := core.Part{
-				ID:    0,
-				Kind:  "",
-				Name:  "",
-				Links: []core.Link(nil),
-			}
-			err := testdb.RemovePart(partId)
-
-			assert.Nil(t, err)
-
-			part, err := testdb.GetPart(partId)
-
-			assert.Nil(t, err)
-			assert.Equal(t, emptyPart, part)
-		})
-
-		t.Run("GetAllParts", func(t *testing.T) {
-			expectedParts := []core.Part{
-				{Name: "4.7k", Kind: "Resistor"},
-				{Name: "47uf", Kind: "Capacitor"},
-				{Name: "TL072", Kind: "IC"},
-			}
-
-			for i := range expectedParts {
-				part := &expectedParts[i]
-
-				id, err := testdb.CreatePart(part.Name, part.Kind)
-				if err != nil {
-					t.Fatalf("Error inserting test part (%d:%#v): %s",
-						i, part, err)
-				}
-
-				part.ID = id
-			}
-
-			parts, err := testdb.GetAllParts()
-
-			assert.Nil(t, err)
-			assert.Len(t, parts, len(expectedParts))
-			assert.Equal(t, expectedParts, parts)
-		})
+		assert.Nil(t, err)
+		assert.Greater(t, pid, int64(0))
 	})
+
+	t.Run("GetPart", func(t *testing.T) {
+		expected := core.Part{
+			ID:    partId,
+			Kind:  partKind,
+			Name:  partName,
+			Links: []core.Link(nil),
+		}
+
+		part, err := testdb.GetPart(partId)
+
+		assert.Nil(t, err)
+		assert.Equal(t, expected, part)
+	})
+
+	t.Run("AddLinkToPart", func(t *testing.T) {
+		lid, err := testdb.AddLinkToPart(testLink, partId)
+
+		linkId = lid
+
+		assert.Nil(t, err)
+		assert.Greater(t, linkId, int64(0))
+	})
+
+	t.Run("GetPartLinks", func(t *testing.T) {
+		expected := []core.Link{
+			{ID: linkId, URL: testLink},
+		}
+		links, err := testdb.GetPartLinks(partId)
+
+		assert.Nil(t, err)
+		assert.Equal(t, expected, links)
+	})
+
+	t.Run("RemoveLinkFromPart", func(t *testing.T) {
+		err := testdb.RemoveLinkFromPart(linkId, partId)
+
+		assert.Nil(t, err)
+
+		links, err := testdb.GetPartLinks(partId)
+
+		assert.Nil(t, err)
+		assert.Len(t, links, 0)
+	})
+
+	t.Run("RemovePart", func(t *testing.T) {
+		emptyPart := core.Part{
+			ID:    0,
+			Kind:  "",
+			Name:  "",
+			Links: []core.Link(nil),
+		}
+		err := testdb.RemovePart(partId)
+
+		assert.Nil(t, err)
+
+		part, err := testdb.GetPart(partId)
+
+		assert.Nil(t, err)
+		assert.Equal(t, emptyPart, part)
+	})
+
+	t.Run("GetAllParts", func(t *testing.T) {
+		expectedParts := []core.Part{
+			{Name: "4.7k", Kind: "Resistor"},
+			{Name: "47uf", Kind: "Capacitor"},
+			{Name: "TL072", Kind: "IC"},
+		}
+
+		for i := range expectedParts {
+			part := &expectedParts[i]
+
+			id, err := testdb.CreatePart(part.Name, part.Kind)
+			if err != nil {
+				t.Fatalf("Error inserting test part (%d:%#v): %s",
+					i, part, err)
+			}
+
+			part.ID = id
+		}
+
+		parts, err := testdb.GetAllParts()
+
+		assert.Nil(t, err)
+		assert.Len(t, parts, len(expectedParts))
+		assert.Equal(t, expectedParts, parts)
+	})
+}
+
+func Test_SQLiteKits(t *testing.T) {
+	const dbPath = "./import/dbkittest.db"
+	testdb, err := getTestDbConnection(t, dbPath)
+	if err != nil {
+		t.Fatalf("Error connecting to test db (%s): %s", dbPath, err)
+	}
+	defer testDbDeferredCleanup(t, testdb, dbPath)
 
 	t.Run("Kits", func(t *testing.T) {
 		var kitId int64 = 0
