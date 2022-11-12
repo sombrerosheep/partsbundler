@@ -335,7 +335,29 @@ func Test_SQLiteKits(t *testing.T) {
 		})
 
 		t.Run("GetAllKits", func(t *testing.T) {
+      expectedKits := []core.Kit{
+        {Name: "ts808", Schematic: "schem1", Diagram: "diag1"},
+        {Name: "cheese", Schematic: "schem2", Diagram: "diag2"},
+        {Name: "pulsar", Schematic: "schem3", Diagram: "diag3"},
+      }
 
+      for i := range expectedKits {
+        kit := &expectedKits[i]
+
+        id, err := testdb.CreateKit(kit.Name, kit.Schematic, kit.Diagram)
+        if err != nil {
+          t.Fatalf("Error inserting test kit (%d:%#v): %s",
+            i, kit, err)
+        }
+
+        kit.ID = id
+      }
+
+      kits, err := testdb.GetAllKits()
+
+      assert.Nil(t, err)
+      assert.Len(t, kits, len(expectedKits))
+      assert.Equal(t, expectedKits, kits)
 		})
 	})
 }
