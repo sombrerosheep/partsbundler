@@ -168,6 +168,10 @@ func (db sqlitedb) CreatePart(name string, kind core.PartType) (int64, error) {
 			values(?, ?)
 	`
 
+  if err := kind.IsValid(); err != nil {
+    return -1, err
+  }
+
 	res, err := db.db.Exec(stmt, name, kind)
 	if err != nil {
 		return -1, err

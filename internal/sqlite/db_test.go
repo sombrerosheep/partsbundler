@@ -13,8 +13,8 @@ import (
 )
 
 const (
-  test_db_setup = "./import/setup.sql"
-  testLink = "example.com"
+	test_db_setup = "./import/setup.sql"
+	testLink      = "example.com"
 )
 
 func getTestDbConnection(t *testing.T, dbPath string) (*sqlitedb, error) {
@@ -74,12 +74,25 @@ func TestSqliteParts(t *testing.T) {
 	const partKind = "Resistor"
 
 	t.Run("CreatePart", func(t *testing.T) {
-		pid, err := testdb.CreatePart(partName, partKind)
+		t.Run("should create part", func(t *testing.T) {
+			pid, err := testdb.CreatePart(partName, partKind)
 
-		partId = pid
+			partId = pid
 
-		assert.Nil(t, err)
-		assert.Greater(t, pid, int64(0))
+			assert.Nil(t, err)
+			assert.Greater(t, pid, int64(0))
+		})
+
+		t.Run("should return InvalidPartType when part Type is invalid", func(t *testing.T) {
+      invalidType := "Flux Capacitor"
+
+      pid, err := testdb.CreatePart(partName, core.PartType(invalidType))
+
+      assert.Equal(t, int64(-1), pid)
+      assert.NotNil(t, err)
+      assert.IsType(t, core.InvalidPartType{}, err)
+      assert.Equal(t, invalidType, err.(core.InvalidPartType).InvalidType)
+		})
 	})
 
 	t.Run("GetPart", func(t *testing.T) {

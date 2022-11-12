@@ -1,5 +1,17 @@
 package core
 
+import (
+	"fmt"
+)
+
+type InvalidPartType struct {
+	InvalidType string
+}
+
+func (p InvalidPartType) Error() string {
+	return fmt.Sprintf("Invalid PartType '%s'", p.InvalidType)
+}
+
 type PartType string
 
 const (
@@ -11,6 +23,15 @@ const (
 	Potentiometer          = "Potentiometer"
 	Switch                 = "Switch"
 )
+
+func (p PartType) IsValid() error {
+	switch p {
+	case Resistor, Capacitor, IC, Transistor, Diode, Potentiometer, Switch:
+		return nil
+	}
+
+	return InvalidPartType{string(p)}
+}
 
 type Part struct {
 	ID    int64    `json:"id"`
