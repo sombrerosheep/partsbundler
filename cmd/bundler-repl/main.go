@@ -70,6 +70,21 @@ func GetCommand(input string) (ReplCmd, error) {
       }
     }
 
+    case "add": {
+      // part link
+      // kit link
+      // kit part
+      if words[1] == "partlink" && len(words) >= 4 {
+        id, err := strconv.ParseInt(words[2], 10, 64)
+        if err != nil {
+          return nil, err
+        }
+        link := words[3]
+
+        return AddPartLinkCommand{id, link}, nil
+      }
+    }
+
     case "delete": {
       if words[1] == "part" && len(words) >= 3 {
         partId, err := strconv.ParseInt(words[2], 10, 64)
