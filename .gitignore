@@ -1,3 +1,4 @@
 partsbundler
 *.exe
 internal/sqlite/import/test.db
+*.out

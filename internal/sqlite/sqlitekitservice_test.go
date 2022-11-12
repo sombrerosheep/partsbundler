@@ -198,7 +198,9 @@ func Test_sqlitekitservice_AddPart(t *testing.T) {
 			},
 		}
 
-		err := sut.RemovePart(exampleKits[0].ID, exampleParts[0].ID)
+    newPartId := int64(999)
+
+    err := sut.AddPart(exampleKits[0].ID, newPartId, 5)
 
 		assert.Nil(t, err)
 	})
