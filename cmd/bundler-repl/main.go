@@ -39,38 +39,48 @@ func GetCommand(input string) (ReplCmd, error) {
 	}
 
 	switch strings.ToLower(words[0]) {
-	case "get":
-		{
-			if words[1] == "parts" {
-				return GetPartsCmd{}, nil
-			} else if words[1] == "kits" {
-				return GetKitsCmd{}, nil
-			} else if words[1] == "kit" && len(words) >= 3 {
-				id, err := strconv.ParseInt(words[2], 10, 64)
-				if err != nil {
-					return nil, err
-				}
+    case "get": {
+      if words[1] == "parts" {
+        return GetPartsCmd{}, nil
+      } else if words[1] == "kits" {
+        return GetKitsCmd{}, nil
+      } else if words[1] == "kit" && len(words) >= 3 {
+        id, err := strconv.ParseInt(words[2], 10, 64)
+        if err != nil {
+          return nil, err
+        }
 
-				return GetKitCmd{kitId: id}, nil
-			} else if words[1] == "part" && len(words) >= 3 {
-				id, err := strconv.ParseInt(words[2], 10, 64)
-				if err != nil {
-					return nil, err
-				}
+        return GetKitCmd{kitId: id}, nil
+      } else if words[1] == "part" && len(words) >= 3 {
+        id, err := strconv.ParseInt(words[2], 10, 64)
+        if err != nil {
+          return nil, err
+        }
 
-				return GetPartCmd{partId: id}, nil
-			}
-		}
+        return GetPartCmd{partId: id}, nil
+      }
+    }
 
-	case "new":
-		{
-			if words[1] == "part" && len(words) >= 4 {
-				name := words[3]
-				kind := words[2]
+    case "new": {
+      if words[1] == "part" && len(words) >= 4 {
+        name := words[3]
+        kind := words[2]
 
-				return NewPartCmd{name, core.PartType(kind)}, nil
-			}
-		}
+        return NewPartCmd{name, core.PartType(kind)}, nil
+      }
+    }
+
+    case "delete": {
+      if words[1] == "part" && len(words) >= 3 {
+        partId, err := strconv.ParseInt(words[2], 10, 64)
+        if err != nil {
+          return nil, err
+        }
+
+        return DeletePartCommand{partId}, nil
+      }
+    }
+
 	}
 
 	return nil, fmt.Errorf("Cannot parse cmd from input (%v)", words)

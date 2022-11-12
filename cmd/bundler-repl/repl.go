@@ -112,6 +112,50 @@ func (cmd NewPartCmd) String() string {
 	return fmt.Sprintf("NewPart: %s (%s)", cmd.name, cmd.kind)
 }
 
+type DeletePartCommand struct {
+	partId int64
+}
+
+func (cmd DeletePartCommand) Exec(state *ReplState) error {
+	err := state.DeletePart(cmd.partId)
+
+	return err
+}
+
+func (cmd DeletePartCommand) String() string {
+	return fmt.Sprintf("DeletePart: %d", cmd.partId)
+}
+
+type AddPartLinkCommand struct {
+	partId int64
+	link   string
+}
+
+func (cmd AddPartLinkCommand) Exec(state *ReplState) error {
+	_, err := state.AddLinkToPart(cmd.partId, cmd.link)
+
+	return err
+}
+
+func (cmd AddPartLinkCommand) String() string {
+	return fmt.Sprintf("AddPartLink: %d (%s)", cmd.partId, cmd.link)
+}
+
+type RemovePartLinkCommand struct {
+	partId int64
+	linkId int64
+}
+
+func (cmd RemovePartLinkCommand) Exec(state *ReplState) error {
+	err := state.RemoveLinkFromPart(cmd.partId, cmd.linkId)
+
+	return err
+}
+
+func (cmd RemovePartLinkCommand) String() string {
+	return fmt.Sprintf("RemovePartLink: %d (%d)", cmd.partId, cmd.linkId)
+}
+
 // Misc Commands
 
 type PrintUsageCmd struct{}
@@ -122,7 +166,8 @@ func (cmd PrintUsageCmd) Exec(_ *ReplState) error {
 	fmt.Println("\tget kit :kitId:")
 	fmt.Println("\tget parts")
 	fmt.Println("\tget part :partId:")
-  fmt.Println("\tnew part :kind: :name:")
+	fmt.Println("\tnew part :kind: :name:")
+	fmt.Println("\tdelete part :partId:")
 
 	return nil
 }
