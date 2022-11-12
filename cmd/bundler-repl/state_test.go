@@ -209,8 +209,8 @@ func Test_GetPart(t *testing.T) {
 
 		_, err := sut.GetPart(partId)
 
-		assert.IsType(t, PartNotFound{}, err)
-		assert.Equal(t, err.(PartNotFound).partId, partId)
+		assert.IsType(t, core.PartNotFound{}, err)
+		assert.Equal(t, err.(core.PartNotFound).PartID, partId)
 	})
 }
 
@@ -278,8 +278,8 @@ func Test_AddLinkToPart(t *testing.T) {
 		_, err := sut.AddLinkToPart(partId, "example.com")
 
 		assert.NotNil(t, err)
-		assert.IsType(t, PartNotFound{}, err)
-		assert.Equal(t, partId, err.(PartNotFound).partId)
+		assert.IsType(t, core.PartNotFound{}, err)
+		assert.Equal(t, partId, err.(core.PartNotFound).PartID)
 	})
 }
 
@@ -311,8 +311,8 @@ func Test_RemoveLinkFromPart(t *testing.T) {
 		err := sut.RemoveLinkFromPart(partId, linkId)
 
 		assert.NotNil(t, err)
-		assert.IsType(t, PartNotFound{}, err)
-		assert.Equal(t, partId, err.(PartNotFound).partId)
+		assert.IsType(t, core.PartNotFound{}, err)
+		assert.Equal(t, partId, err.(core.PartNotFound).PartID)
 	})
 
 	t.Run("should return LinkNotFound when partId doesn't include linkId", func(t *testing.T) {
@@ -325,9 +325,9 @@ func Test_RemoveLinkFromPart(t *testing.T) {
 		err := sut.RemoveLinkFromPart(partId, linkId)
 
 		assert.NotNil(t, err)
-		assert.IsType(t, LinkNotFound{}, err)
-		assert.Equal(t, partId, err.(LinkNotFound).ownerId)
-		assert.Equal(t, linkId, err.(LinkNotFound).linkId)
+		assert.IsType(t, core.LinkNotFound{}, err)
+		assert.Equal(t, partId, err.(core.LinkNotFound).OwnerID)
+		assert.Equal(t, linkId, err.(core.LinkNotFound).LinkID)
 	})
 }
 
@@ -347,8 +347,8 @@ func Test_DeletePart(t *testing.T) {
 		_, err = sut.GetPart(part.ID)
 
 		assert.NotNil(t, err)
-		assert.IsType(t, PartNotFound{}, err)
-		assert.Equal(t, part.ID, err.(PartNotFound).partId)
+		assert.IsType(t, core.PartNotFound{}, err)
+		assert.Equal(t, part.ID, err.(core.PartNotFound).PartID)
 	})
 
 	t.Run("should return PartInUse when part is in use by a kit", func(t *testing.T) {
@@ -360,8 +360,8 @@ func Test_DeletePart(t *testing.T) {
 		err := sut.DeletePart(partId)
 
 		assert.NotNil(t, err)
-		assert.IsType(t, PartInUse{}, err)
-		assert.Equal(t, partId, err.(PartInUse).partId)
+		assert.IsType(t, core.PartInUse{}, err)
+		assert.Equal(t, partId, err.(core.PartInUse).PartID)
 	})
 }
 
@@ -404,8 +404,8 @@ func Test_GetKit(t *testing.T) {
 
 		_, err := sut.GetKit(kitId)
 
-		assert.IsType(t, KitNotFound{}, err)
-		assert.Equal(t, err.(KitNotFound).kitId, kitId)
+		assert.IsType(t, core.KitNotFound{}, err)
+		assert.Equal(t, err.(core.KitNotFound).KitID, kitId)
 	})
 }
 
@@ -463,8 +463,8 @@ func Test_AddLinkToKit(t *testing.T) {
 		_, err := sut.AddLinkToKit(kitId, url)
 
 		assert.NotNil(t, err)
-		assert.IsType(t, KitNotFound{}, err)
-		assert.Equal(t, err.(KitNotFound).kitId, kitId)
+		assert.IsType(t, core.KitNotFound{}, err)
+		assert.Equal(t, err.(core.KitNotFound).KitID, kitId)
 	})
 }
 
@@ -530,8 +530,8 @@ func Test_AddPartToKit(t *testing.T) {
 		err := sut.AddPartToKit(partId, kitId, 1)
 
 		assert.NotNil(t, err)
-		assert.IsType(t, KitNotFound{}, err)
-		assert.Equal(t, kitId, err.(KitNotFound).kitId)
+		assert.IsType(t, core.KitNotFound{}, err)
+		assert.Equal(t, kitId, err.(core.KitNotFound).KitID)
 	})
 
 	t.Run("should return PartNotFound when part doesn't exist", func(t *testing.T) {
@@ -544,8 +544,8 @@ func Test_AddPartToKit(t *testing.T) {
 		err := sut.AddPartToKit(partId, kitId, 1)
 
 		assert.NotNil(t, err)
-		assert.IsType(t, PartNotFound{}, err)
-		assert.Equal(t, partId, err.(PartNotFound).partId)
+		assert.IsType(t, core.PartNotFound{}, err)
+		assert.Equal(t, partId, err.(core.PartNotFound).PartID)
 	})
 }
 
@@ -589,8 +589,8 @@ func Test_UpdatePartQuantity(t *testing.T) {
 		err := sut.UpdatePartQuantity(part.ID, kitId, newQty)
 
 		assert.NotNil(t, err)
-		assert.IsType(t, KitNotFound{}, err)
-		assert.Equal(t, kitId, err.(KitNotFound).kitId)
+		assert.IsType(t, core.KitNotFound{}, err)
+		assert.Equal(t, kitId, err.(core.KitNotFound).KitID)
 	})
 
 	t.Run("should return PartNotFound when part does not exist", func(t *testing.T) {
@@ -604,8 +604,8 @@ func Test_UpdatePartQuantity(t *testing.T) {
 		err := sut.UpdatePartQuantity(partId, kitId, newQty)
 
 		assert.NotNil(t, err)
-		assert.IsType(t, PartNotFound{}, err)
-		assert.Equal(t, partId, err.(PartNotFound).partId)
+		assert.IsType(t, core.PartNotFound{}, err)
+		assert.Equal(t, partId, err.(core.PartNotFound).PartID)
 	})
 }
 
@@ -645,8 +645,8 @@ func Test_RemovePartFromKit(t *testing.T) {
 		err := sut.RemovePartFromKit(part.ID, kitId)
 
 		assert.NotNil(t, err)
-		assert.IsType(t, KitNotFound{}, err)
-		assert.Equal(t, kitId, err.(KitNotFound).kitId)
+		assert.IsType(t, core.KitNotFound{}, err)
+		assert.Equal(t, kitId, err.(core.KitNotFound).KitID)
 	})
 
 	t.Run("should return PartNotFound when part does not exist", func(t *testing.T) {
@@ -659,8 +659,8 @@ func Test_RemovePartFromKit(t *testing.T) {
 		err := sut.RemovePartFromKit(partId, kitId)
 
 		assert.NotNil(t, err)
-		assert.IsType(t, PartNotFound{}, err)
-		assert.Equal(t, partId, err.(PartNotFound).partId)
+		assert.IsType(t, core.PartNotFound{}, err)
+		assert.Equal(t, partId, err.(core.PartNotFound).PartID)
 	})
 }
 
@@ -678,8 +678,8 @@ func Test_DeleteKit(t *testing.T) {
 		_, err = sut.GetKit(kitId)
 
 		assert.NotNil(t, err)
-		assert.IsType(t, KitNotFound{}, err)
-		assert.Equal(t, kitId, err.(KitNotFound).kitId)
+		assert.IsType(t, core.KitNotFound{}, err)
+		assert.Equal(t, kitId, err.(core.KitNotFound).KitID)
 	})
 
 	t.Run("should return KitNotFound when kit doesn't exist", func(t *testing.T) {
@@ -691,7 +691,7 @@ func Test_DeleteKit(t *testing.T) {
 		err := sut.DeleteKit(kitId)
 
 		assert.NotNil(t, err)
-		assert.IsType(t, KitNotFound{}, err)
-		assert.Equal(t, kitId, err.(KitNotFound).kitId)
+		assert.IsType(t, core.KitNotFound{}, err)
+		assert.Equal(t, kitId, err.(core.KitNotFound).KitID)
 	})
 }

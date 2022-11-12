@@ -39,3 +39,11 @@ type Part struct {
 	Name  string   `json:"name"`
 	Links []Link   `json:"links"`
 }
+
+type PartNotFound struct {
+	PartID int64
+}
+
+func (p PartNotFound) Error() string {
+	return fmt.Sprintf("Part %d not found", p.PartID)
+}

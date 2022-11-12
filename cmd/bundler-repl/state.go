@@ -1,45 +1,11 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/sombrerosheep/partsbundler/internal/sqlite"
 
 	"github.com/sombrerosheep/partsbundler/pkg/core"
 	"github.com/sombrerosheep/partsbundler/pkg/service"
 )
-
-type KitNotFound struct {
-	kitId int64
-}
-
-func (k KitNotFound) Error() string {
-	return fmt.Sprintf("Kit %d not found", k.kitId)
-}
-
-type PartNotFound struct {
-	partId int64
-}
-
-func (p PartNotFound) Error() string {
-	return fmt.Sprintf("Part %d not found", p.partId)
-}
-
-type LinkNotFound struct {
-	linkId, ownerId int64
-}
-
-func (l LinkNotFound) Error() string {
-	return fmt.Sprintf("Link %d not found on Part %d", l.linkId, l.ownerId)
-}
-
-type PartInUse struct {
-	partId int64
-}
-
-func (p PartInUse) Error() string {
-	return fmt.Sprintf("Part %d is in use by one or more kits", p.partId)
-}
 
 type ReplState struct {
 	kits    []core.Kit
@@ -90,7 +56,7 @@ func (s ReplState) getPartRef(partId int64) (*core.Part, error) {
 		}
 	}
 
-	return &core.Part{}, PartNotFound{partId}
+	return &core.Part{}, core.PartNotFound{PartID: partId}
 }
 
 func (s ReplState) GetPart(partId int64) (core.Part, error) {
@@ -100,7 +66,7 @@ func (s ReplState) GetPart(partId int64) (core.Part, error) {
 	}
 
 	if p == nil {
-		return core.Part{}, PartNotFound{partId}
+		return core.Part{}, core.PartNotFound{PartID: partId}
 	}
 
 	return *p, nil
@@ -120,7 +86,7 @@ func (s *ReplState) CreatePart(name string, kind core.PartType) (core.Part, erro
 func (s *ReplState) AddLinkToPart(partId int64, link string) (core.Link, error) {
 	part, err := s.getPartRef(partId)
 	if err != nil {
-		return core.Link{}, PartNotFound{partId}
+		return core.Link{}, core.PartNotFound{PartID: partId}
 	}
 
 	newLink, err := s.bundler.Parts.AddLink(partId, link)
@@ -156,7 +122,7 @@ func (s *ReplState) RemoveLinkFromPart(partId, linkId int64) error {
 	if linkIndex < 0 {
 		// this would mean the db had the entry (and didnt error) but
 		// the state did not. The state is most likely out of date.
-		return LinkNotFound{linkId, partId}
+		return core.LinkNotFound{LinkID: linkId, OwnerID: partId}
 	}
 
 	part.Links = append(part.Links[:linkIndex], part.Links[linkIndex+1:]...)
@@ -176,7 +142,7 @@ func (s *ReplState) DeletePart(partId int64) error {
 	}
 
 	if len(kitIds) > 0 {
-		return PartInUse{partId}
+		return core.PartInUse{PartID: partId}
 	}
 
 	err = s.bundler.Parts.Delete(partId)
@@ -193,7 +159,7 @@ func (s *ReplState) DeletePart(partId int64) error {
 	}
 
 	if partIndex < 0 {
-		return PartNotFound{partId}
+		return core.PartNotFound{PartID: partId}
 	}
 
 	s.parts = append(s.parts[:partIndex], s.parts[partIndex+1:]...)
@@ -212,7 +178,7 @@ func (s ReplState) GetKit(kitId int64) (core.Kit, error) {
 		}
 	}
 
-	return core.Kit{}, KitNotFound{kitId}
+	return core.Kit{}, core.KitNotFound{KitID: kitId}
 }
 
 func (s *ReplState) CreateKit(name, schematic, diagram string) (core.Kit, error) {
@@ -233,7 +199,7 @@ func (s ReplState) getKitRef(kitId int64) (*core.Kit, error) {
 		}
 	}
 
-	return nil, KitNotFound{kitId}
+	return nil, core.KitNotFound{KitID: kitId}
 }
 
 func (s *ReplState) AddLinkToKit(kitId int64, link string) (core.Link, error) {
@@ -271,7 +237,7 @@ func (s *ReplState) RemoveLinkFromKit(kitId, linkId int64) error {
 	}
 
 	if linkIndex > 0 {
-		return LinkNotFound{linkId, kitId}
+		return core.LinkNotFound{LinkID: linkId, OwnerID: kitId}
 	}
 
 	kit.Links = append(kit.Links[:linkIndex], kit.Links[linkIndex+1:]...)
@@ -355,7 +321,7 @@ func (s *ReplState) RemovePartFromKit(partId, kitId int64) error {
 	}
 
 	if partIndex < 0 {
-		return PartNotFound{partId}
+		return core.PartNotFound{PartID: partId}
 	}
 
 	kit.Parts = append(kit.Parts[:partIndex], kit.Parts[partIndex+1:]...)
@@ -372,7 +338,7 @@ func (s *ReplState) DeleteKit(kitId int64) error {
 	}
 
 	if kitIndex < 0 {
-		return KitNotFound{kitId}
+		return core.KitNotFound{KitID: kitId}
 	}
 
 	s.kits = append(s.kits[:kitIndex], s.kits[kitIndex+1:]...)
