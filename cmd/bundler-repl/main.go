@@ -47,159 +47,165 @@ func GetCommand(input string) (ReplCmd, error) {
 	}
 
 	switch strings.ToLower(words[0]) {
-    case "get": {
-      if words[1] == "parts" {
-        return GetPartsCmd{}, nil
-      } else if words[1] == "kits" {
-        return GetKitsCmd{}, nil
-      } else if words[1] == "kit" && len(words) >= 3 {
-        id, err := strconv.ParseInt(words[2], 10, 64)
-        if err != nil {
-          return nil, err
-        }
+	case "get":
+		{
+			if words[1] == "parts" {
+				return GetPartsCmd{}, nil
+			} else if words[1] == "kits" {
+				return GetKitsCmd{}, nil
+			} else if words[1] == "kit" && len(words) >= 3 {
+				id, err := strconv.ParseInt(words[2], 10, 64)
+				if err != nil {
+					return nil, err
+				}
 
-        return GetKitCmd{kitId: id}, nil
-      } else if words[1] == "part" && len(words) >= 3 {
-        id, err := strconv.ParseInt(words[2], 10, 64)
-        if err != nil {
-          return nil, err
-        }
+				return GetKitCmd{kitId: id}, nil
+			} else if words[1] == "part" && len(words) >= 3 {
+				id, err := strconv.ParseInt(words[2], 10, 64)
+				if err != nil {
+					return nil, err
+				}
 
-        return GetPartCmd{id}, nil
-      }
-    }
+				return GetPartCmd{id}, nil
+			}
+		}
 
-    case "new": {
-      if words[1] == "part" && len(words) >= 4 {
-        name := words[3]
-        kind := words[2]
+	case "new":
+		{
+			if words[1] == "part" && len(words) >= 4 {
+				name := words[3]
+				kind := words[2]
 
-        return NewPartCmd{name, core.PartType(kind)}, nil
-      } else if words[1] == "kit" && len(words) >= 5 {
-        name := words[2]
-        schematic := words[3]
-        diagram := words[4]
+				return NewPartCmd{name, core.PartType(kind)}, nil
+			} else if words[1] == "kit" && len(words) >= 5 {
+				name := words[2]
+				schematic := words[3]
+				diagram := words[4]
 
-        return NewKitCmd{name, schematic, diagram}, nil
-      }
-    }
+				return NewKitCmd{name, schematic, diagram}, nil
+			}
+		}
 
-    case "add": {
-      if words[1] == "partlink" && len(words) >= 4 {
-        id, err := strconv.ParseInt(words[2], 10, 64)
-        if err != nil {
-          return nil, err
-        }
-        link := words[3]
+	case "add":
+		{
+			if words[1] == "partlink" && len(words) >= 4 {
+				id, err := strconv.ParseInt(words[2], 10, 64)
+				if err != nil {
+					return nil, err
+				}
+				link := words[3]
 
-        return AddPartLinkCmd{id, link}, nil
-      } else if words[1] == "kitlink" && len(words) >= 4 {
-        id, err := strconv.ParseInt(words[2], 10, 64)
-        if err != nil {
-          return nil, err
-        }
-        link := words[3]
+				return AddPartLinkCmd{id, link}, nil
+			} else if words[1] == "kitlink" && len(words) >= 4 {
+				id, err := strconv.ParseInt(words[2], 10, 64)
+				if err != nil {
+					return nil, err
+				}
+				link := words[3]
 
-        return AddKitLinkCmd{id, link}, nil
-      } else if words[1] == "kitpart" && len(words) >= 5 {
-        kitId, err := strconv.ParseInt(words[2], 10, 64)
-        if err != nil {
-          return nil, err
-        }
+				return AddKitLinkCmd{id, link}, nil
+			} else if words[1] == "kitpart" && len(words) >= 5 {
+				kitId, err := strconv.ParseInt(words[2], 10, 64)
+				if err != nil {
+					return nil, err
+				}
 
-        partId, err := strconv.ParseInt(words[3], 10, 64)
-        if err != nil {
-          return nil, err
-        }
+				partId, err := strconv.ParseInt(words[3], 10, 64)
+				if err != nil {
+					return nil, err
+				}
 
-        qty, err := strconv.ParseUint(words[4], 10, 64)
-        if err != nil {
-          return nil, err
-        }
+				qty, err := strconv.ParseUint(words[4], 10, 64)
+				if err != nil {
+					return nil, err
+				}
 
-        return AddKitPartCmd{kitId, partId, qty}, nil
-      }
-    }
+				return AddKitPartCmd{kitId, partId, qty}, nil
+			}
+		}
 
-    case "remove": {
-      if words[1] == "partlink" && len(words) >= 4 {
-        partId, err := strconv.ParseInt(words[2], 10, 64)
-        if err != nil {
-          return nil, err
-        }
+	case "remove":
+		{
+			if words[1] == "partlink" && len(words) >= 4 {
+				partId, err := strconv.ParseInt(words[2], 10, 64)
+				if err != nil {
+					return nil, err
+				}
 
-        linkId, err := strconv.ParseInt(words[3], 10, 64)
-        if err != nil {
-          return nil, err
-        }
+				linkId, err := strconv.ParseInt(words[3], 10, 64)
+				if err != nil {
+					return nil, err
+				}
 
-        return RemovePartLinkCmd{partId: partId, linkId: linkId}, nil
-      } else if words[1] == "kitlink" && len(words) >= 4 {
-        kitId, err := strconv.ParseInt(words[2], 10, 64)
-        if err != nil {
-          return nil, err
-        }
+				return RemovePartLinkCmd{partId: partId, linkId: linkId}, nil
+			} else if words[1] == "kitlink" && len(words) >= 4 {
+				kitId, err := strconv.ParseInt(words[2], 10, 64)
+				if err != nil {
+					return nil, err
+				}
 
-        linkId, err := strconv.ParseInt(words[3], 10, 64)
-        if err != nil {
-          return nil, err
-        }
+				linkId, err := strconv.ParseInt(words[3], 10, 64)
+				if err != nil {
+					return nil, err
+				}
 
-        return RemoveKitLinkCmd{kitId, linkId}, nil
-      } else if words[1] == "kitpart" && len(words) >= 4 {
-        kitId, err := strconv.ParseInt(words[2], 10, 64)
-        if err != nil {
-          return nil, err
-        }
+				return RemoveKitLinkCmd{kitId, linkId}, nil
+			} else if words[1] == "kitpart" && len(words) >= 4 {
+				kitId, err := strconv.ParseInt(words[2], 10, 64)
+				if err != nil {
+					return nil, err
+				}
 
-        partId, err := strconv.ParseInt(words[3], 10, 64)
-        if err != nil {
-          return nil, err
-        }
+				partId, err := strconv.ParseInt(words[3], 10, 64)
+				if err != nil {
+					return nil, err
+				}
 
-        return RemoveKitPartCmd{kitId, partId}, nil
-      }
-    }
+				return RemoveKitPartCmd{kitId, partId}, nil
+			}
+		}
 
-    case "set": {
-      if words[1] == "kitpart" && len(words) >= 5 {
-        kitId, err := strconv.ParseInt(words[2], 10, 64)
-        if err != nil {
-          return nil, err
-        }
+	case "set":
+		{
+			if words[1] == "kitpart" && len(words) >= 5 {
+				kitId, err := strconv.ParseInt(words[2], 10, 64)
+				if err != nil {
+					return nil, err
+				}
 
-        partId, err := strconv.ParseInt(words[3], 10, 64)
-        if err != nil {
-          return nil, err
-        }
+				partId, err := strconv.ParseInt(words[3], 10, 64)
+				if err != nil {
+					return nil, err
+				}
 
-        qty, err := strconv.ParseUint(words[4], 10, 64)
-        if err != nil {
-          return nil, err
-        }
+				qty, err := strconv.ParseUint(words[4], 10, 64)
+				if err != nil {
+					return nil, err
+				}
 
-        return SetKitPartQuantityCmd{kitId, partId, qty}, nil
-      }
-    }
+				return SetKitPartQuantityCmd{kitId, partId, qty}, nil
+			}
+		}
 
-    case "delete": {
-      if words[1] == "part" && len(words) >= 3 {
-        id, err := strconv.ParseInt(words[2], 10, 64)
-        if err != nil {
-          return nil, err
-        }
+	case "delete":
+		{
+			if words[1] == "part" && len(words) >= 3 {
+				id, err := strconv.ParseInt(words[2], 10, 64)
+				if err != nil {
+					return nil, err
+				}
 
-        return DeletePartCmd{id}, nil
-      } else if words[1] == "kit" && len(words) >= 3 {
-        id, err := strconv.ParseInt(words[2], 10, 64)
-        if err != nil {
-          return nil, err
-        }
+				return DeletePartCmd{id}, nil
+			} else if words[1] == "kit" && len(words) >= 3 {
+				id, err := strconv.ParseInt(words[2], 10, 64)
+				if err != nil {
+					return nil, err
+				}
 
-        return DeleteKitCmd{id}, nil
-      }
-    }
-  }
+				return DeleteKitCmd{id}, nil
+			}
+		}
+	}
 
 	return nil, CannotParseCommand{input}
 }

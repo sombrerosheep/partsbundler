@@ -490,7 +490,7 @@ func Test_RemoveLinkFromKit(t *testing.T) {
 func Test_AddPartToKit(t *testing.T) {
 	t.Run("should add kit to part", func(t *testing.T) {
 
-    sut := &ReplState{bundler: stubBundlerService}
+		sut := &ReplState{bundler: stubBundlerService}
 		sut.Refresh()
 
 		kitId := fakeKits[0].ID

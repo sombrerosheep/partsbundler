@@ -42,7 +42,7 @@ type greenSqliteMock struct {
 
 func (db greenSqliteMock) GetPart(partId int64) (core.Part, error) {
 	if partId <= int64(len(exampleKitParts)) && partId > 0 {
-		return exampleParts[partId - 1], nil
+		return exampleParts[partId-1], nil
 	}
 
 	return exampleParts[0], nil

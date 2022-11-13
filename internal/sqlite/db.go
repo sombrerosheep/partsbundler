@@ -3,8 +3,8 @@ package sqlite
 import (
 	"database/sql"
 
-	"github.com/sombrerosheep/partsbundler/pkg/core"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/sombrerosheep/partsbundler/pkg/core"
 )
 
 type isqlitedb interface {
@@ -168,9 +168,9 @@ func (db sqlitedb) CreatePart(name string, kind core.PartType) (int64, error) {
 			values(?, ?)
 	`
 
-  if err := kind.IsValid(); err != nil {
-    return -1, err
-  }
+	if err := kind.IsValid(); err != nil {
+		return -1, err
+	}
 
 	res, err := db.db.Exec(stmt, name, kind)
 	if err != nil {

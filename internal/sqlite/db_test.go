@@ -84,14 +84,14 @@ func TestSqliteParts(t *testing.T) {
 		})
 
 		t.Run("should return InvalidPartType when part Type is invalid", func(t *testing.T) {
-      invalidType := "Flux Capacitor"
+			invalidType := "Flux Capacitor"
 
-      pid, err := testdb.CreatePart(partName, core.PartType(invalidType))
+			pid, err := testdb.CreatePart(partName, core.PartType(invalidType))
 
-      assert.Equal(t, int64(-1), pid)
-      assert.NotNil(t, err)
-      assert.IsType(t, core.InvalidPartType{}, err)
-      assert.Equal(t, invalidType, err.(core.InvalidPartType).InvalidType)
+			assert.Equal(t, int64(-1), pid)
+			assert.NotNil(t, err)
+			assert.IsType(t, core.InvalidPartType{}, err)
+			assert.Equal(t, invalidType, err.(core.InvalidPartType).InvalidType)
 		})
 	})
 
@@ -335,29 +335,29 @@ func Test_SQLiteKits(t *testing.T) {
 		})
 
 		t.Run("GetAllKits", func(t *testing.T) {
-      expectedKits := []core.Kit{
-        {Name: "ts808", Schematic: "schem1", Diagram: "diag1"},
-        {Name: "cheese", Schematic: "schem2", Diagram: "diag2"},
-        {Name: "pulsar", Schematic: "schem3", Diagram: "diag3"},
-      }
+			expectedKits := []core.Kit{
+				{Name: "ts808", Schematic: "schem1", Diagram: "diag1"},
+				{Name: "cheese", Schematic: "schem2", Diagram: "diag2"},
+				{Name: "pulsar", Schematic: "schem3", Diagram: "diag3"},
+			}
 
-      for i := range expectedKits {
-        kit := &expectedKits[i]
+			for i := range expectedKits {
+				kit := &expectedKits[i]
 
-        id, err := testdb.CreateKit(kit.Name, kit.Schematic, kit.Diagram)
-        if err != nil {
-          t.Fatalf("Error inserting test kit (%d:%#v): %s",
-            i, kit, err)
-        }
+				id, err := testdb.CreateKit(kit.Name, kit.Schematic, kit.Diagram)
+				if err != nil {
+					t.Fatalf("Error inserting test kit (%d:%#v): %s",
+						i, kit, err)
+				}
 
-        kit.ID = id
-      }
+				kit.ID = id
+			}
 
-      kits, err := testdb.GetAllKits()
+			kits, err := testdb.GetAllKits()
 
-      assert.Nil(t, err)
-      assert.Len(t, kits, len(expectedKits))
-      assert.Equal(t, expectedKits, kits)
+			assert.Nil(t, err)
+			assert.Len(t, kits, len(expectedKits))
+			assert.Equal(t, expectedKits, kits)
 		})
 	})
 }

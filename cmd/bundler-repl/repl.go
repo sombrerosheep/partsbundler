@@ -246,33 +246,33 @@ func (cmd SetKitPartQuantityCmd) String() string {
 
 // RemoveKitPartCmd
 type RemoveKitPartCmd struct {
-  kitId int64
-  partId int64
+	kitId  int64
+	partId int64
 }
 
 func (cmd RemoveKitPartCmd) Exec(state *ReplState) error {
-  err := state.RemovePartFromKit(cmd.partId, cmd.kitId)
+	err := state.RemovePartFromKit(cmd.partId, cmd.kitId)
 
-  return err
+	return err
 }
 
 func (cmd RemoveKitPartCmd) String() string {
-  return fmt.Sprintf("RemoveKitPart: %d:%d", cmd.kitId, cmd.partId)
+	return fmt.Sprintf("RemoveKitPart: %d:%d", cmd.kitId, cmd.partId)
 }
 
 // DeleteKitCmd
 type DeleteKitCmd struct {
-  kitId int64
+	kitId int64
 }
 
 func (cmd DeleteKitCmd) Exec(state *ReplState) error {
-  err := state.DeleteKit(cmd.kitId)
+	err := state.DeleteKit(cmd.kitId)
 
-  return err
+	return err
 }
 
 func (cmd DeleteKitCmd) String() string {
-  return fmt.Sprintf("DeleteKid: %d", cmd.kitId)
+	return fmt.Sprintf("DeleteKid: %d", cmd.kitId)
 }
 
 // Misc Commands
