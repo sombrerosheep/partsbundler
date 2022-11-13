@@ -11,45 +11,6 @@ type ReplCmd interface {
 	String() string
 }
 
-// Kits Commands
-
-// GetKitsCmd Repl Command to get kits
-type GetKitsCmd struct{}
-
-func (cmd GetKitsCmd) Exec(state *ReplState) error {
-	for _, v := range state.GetKits() {
-		fmt.Printf("| %3d | %15s | %10s | %10s | %3d |\n",
-			v.ID, v.Name, v.Schematic, v.Diagram, len(v.Parts))
-	}
-
-	return nil
-}
-
-func (cmd GetKitsCmd) String() string {
-	return "GetKits"
-}
-
-// GetKitCmd Repl Command to get a kit by ID
-type GetKitCmd struct {
-	kitId int64
-}
-
-func (cmd GetKitCmd) Exec(state *ReplState) error {
-	kit, err := state.GetKit(cmd.kitId)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("| %3d | %15s | %10s | %10s | %3d |\n",
-		kit.ID, kit.Name, kit.Schematic, kit.Diagram, len(kit.Parts))
-
-	return nil
-}
-
-func (cmd GetKitCmd) String() string {
-	return fmt.Sprintf("GetKit(%d)", cmd.kitId)
-}
-
 // Part Commands
 
 func printPart(part core.Part) {
@@ -112,48 +73,206 @@ func (cmd NewPartCmd) String() string {
 	return fmt.Sprintf("NewPart: %s (%s)", cmd.name, cmd.kind)
 }
 
-type DeletePartCommand struct {
+type DeletePartCmd struct {
 	partId int64
 }
 
-func (cmd DeletePartCommand) Exec(state *ReplState) error {
+func (cmd DeletePartCmd) Exec(state *ReplState) error {
 	err := state.DeletePart(cmd.partId)
 
 	return err
 }
 
-func (cmd DeletePartCommand) String() string {
+func (cmd DeletePartCmd) String() string {
 	return fmt.Sprintf("DeletePart: %d", cmd.partId)
 }
 
-type AddPartLinkCommand struct {
+type AddPartLinkCmd struct {
 	partId int64
 	link   string
 }
 
-func (cmd AddPartLinkCommand) Exec(state *ReplState) error {
+func (cmd AddPartLinkCmd) Exec(state *ReplState) error {
 	_, err := state.AddLinkToPart(cmd.partId, cmd.link)
 
 	return err
 }
 
-func (cmd AddPartLinkCommand) String() string {
+func (cmd AddPartLinkCmd) String() string {
 	return fmt.Sprintf("AddPartLink: %d (%s)", cmd.partId, cmd.link)
 }
 
-type RemovePartLinkCommand struct {
+type RemovePartLinkCmd struct {
 	partId int64
 	linkId int64
 }
 
-func (cmd RemovePartLinkCommand) Exec(state *ReplState) error {
+func (cmd RemovePartLinkCmd) Exec(state *ReplState) error {
 	err := state.RemoveLinkFromPart(cmd.partId, cmd.linkId)
 
 	return err
 }
 
-func (cmd RemovePartLinkCommand) String() string {
+func (cmd RemovePartLinkCmd) String() string {
 	return fmt.Sprintf("RemovePartLink: %d (%d)", cmd.partId, cmd.linkId)
+}
+
+// Kits Commands
+
+// GetKitsCmd Repl Command to get kits
+type GetKitsCmd struct{}
+
+func (cmd GetKitsCmd) Exec(state *ReplState) error {
+	for _, v := range state.GetKits() {
+		fmt.Printf("| %3d | %15s | %10s | %10s | %3d |\n",
+			v.ID, v.Name, v.Schematic, v.Diagram, len(v.Parts))
+	}
+
+	return nil
+}
+
+func (cmd GetKitsCmd) String() string {
+	return "GetKits"
+}
+
+// GetKitCmd Repl Command to get a kit by ID
+type GetKitCmd struct {
+	kitId int64
+}
+
+func (cmd GetKitCmd) Exec(state *ReplState) error {
+	kit, err := state.GetKit(cmd.kitId)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("| %3d | %15s | %10s | %10s | %3d |\n",
+		kit.ID, kit.Name, kit.Schematic, kit.Diagram, len(kit.Parts))
+
+	return nil
+}
+
+func (cmd GetKitCmd) String() string {
+	return fmt.Sprintf("GetKit(%d)", cmd.kitId)
+}
+
+// NewKitCmd
+type NewKitCmd struct {
+	name      string
+	schematic string
+	diagram   string
+}
+
+func (cmd NewKitCmd) Exec(state *ReplState) error {
+	kit, err := state.CreateKit(cmd.name, cmd.schematic, cmd.diagram)
+	if err != nil {
+		return err
+	}
+
+	state.kits = append(state.kits, kit)
+
+	return nil
+}
+
+func (cmd NewKitCmd) String() string {
+	return fmt.Sprintf("NewKit: %s | %s | %s", cmd.name, cmd.schematic, cmd.diagram)
+}
+
+// AddKitLinkCmd
+type AddKitLinkCmd struct {
+	kitId int64
+	link  string
+}
+
+func (cmd AddKitLinkCmd) Exec(state *ReplState) error {
+	_, err := state.AddLinkToKit(cmd.kitId, cmd.link)
+
+	return err
+}
+
+func (cmd AddKitLinkCmd) String() string {
+	return fmt.Sprintf("AddKitLink: %d, (%s)", cmd.kitId, cmd.link)
+}
+
+// RemoveKitLinkCmd
+type RemoveKitLinkCmd struct {
+	kitId  int64
+	linkId int64
+}
+
+func (cmd RemoveKitLinkCmd) Exec(state *ReplState) error {
+	err := state.RemoveLinkFromKit(cmd.kitId, cmd.linkId)
+
+	return err
+}
+
+func (cmd RemoveKitLinkCmd) String() string {
+	return fmt.Sprintf("RemoveKitLink: %d (%d)", cmd.kitId, cmd.linkId)
+}
+
+// AddKitPartCmd
+type AddKitPartCmd struct {
+	kitId    int64
+	partId   int64
+	quantity uint64
+}
+
+func (cmd AddKitPartCmd) Exec(state *ReplState) error {
+	err := state.AddPartToKit(cmd.partId, cmd.kitId, cmd.quantity)
+
+	return err
+}
+
+func (cmd AddKitPartCmd) String() string {
+	return fmt.Sprintf("AddKitPart: %d:%d (%d)", cmd.kitId, cmd.partId, cmd.quantity)
+}
+
+// SetKitPartQuantityCmd
+type SetKitPartQuantityCmd struct {
+	kitId    int64
+	partId   int64
+	quantity uint64
+}
+
+func (cmd SetKitPartQuantityCmd) Exec(state *ReplState) error {
+	err := state.UpdatePartQuantity(cmd.partId, cmd.kitId, cmd.quantity)
+
+	return err
+}
+
+func (cmd SetKitPartQuantityCmd) String() string {
+	return fmt.Sprintf("SetKitPartQuantity: %d:%d (%d)", cmd.kitId, cmd.partId, cmd.quantity)
+}
+
+// RemoveKitPartCmd
+type RemoveKitPartCmd struct {
+  kitId int64
+  partId int64
+}
+
+func (cmd RemoveKitPartCmd) Exec(state *ReplState) error {
+  err := state.RemovePartFromKit(cmd.partId, cmd.kitId)
+
+  return err
+}
+
+func (cmd RemoveKitPartCmd) String() string {
+  return fmt.Sprintf("RemoveKitPart: %d:%d", cmd.kitId, cmd.partId)
+}
+
+// DeleteKitCmd
+type DeleteKitCmd struct {
+  kitId int64
+}
+
+func (cmd DeleteKitCmd) Exec(state *ReplState) error {
+  err := state.DeleteKit(cmd.kitId)
+
+  return err
+}
+
+func (cmd DeleteKitCmd) String() string {
+  return fmt.Sprintf("DeleteKid: %d", cmd.kitId)
 }
 
 // Misc Commands

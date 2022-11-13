@@ -14,6 +14,14 @@ const (
 	dbPath = "../../data/partsbundler.db"
 )
 
+type CannotParseCommand struct {
+	input string
+}
+
+func (cmd CannotParseCommand) Error() string {
+	return fmt.Sprintf("Cannot parse into command: %s", cmd.input)
+}
+
 func printInput(words []string) {
 	fmt.Printf("| ")
 	for _, word := range words {
@@ -57,7 +65,7 @@ func GetCommand(input string) (ReplCmd, error) {
           return nil, err
         }
 
-        return GetPartCmd{partId: id}, nil
+        return GetPartCmd{id}, nil
       }
     }
 
@@ -67,13 +75,16 @@ func GetCommand(input string) (ReplCmd, error) {
         kind := words[2]
 
         return NewPartCmd{name, core.PartType(kind)}, nil
+      } else if words[1] == "kit" && len(words) >= 5 {
+        name := words[2]
+        schematic := words[3]
+        diagram := words[4]
+
+        return NewKitCmd{name, schematic, diagram}, nil
       }
     }
 
     case "add": {
-      // part link
-      // kit link
-      // kit part
       if words[1] == "partlink" && len(words) >= 4 {
         id, err := strconv.ParseInt(words[2], 10, 64)
         if err != nil {
@@ -81,24 +92,116 @@ func GetCommand(input string) (ReplCmd, error) {
         }
         link := words[3]
 
-        return AddPartLinkCommand{id, link}, nil
+        return AddPartLinkCmd{id, link}, nil
+      } else if words[1] == "kitlink" && len(words) >= 4 {
+        id, err := strconv.ParseInt(words[2], 10, 64)
+        if err != nil {
+          return nil, err
+        }
+        link := words[3]
+
+        return AddKitLinkCmd{id, link}, nil
+      } else if words[1] == "kitpart" && len(words) >= 5 {
+        kitId, err := strconv.ParseInt(words[2], 10, 64)
+        if err != nil {
+          return nil, err
+        }
+
+        partId, err := strconv.ParseInt(words[3], 10, 64)
+        if err != nil {
+          return nil, err
+        }
+
+        qty, err := strconv.ParseUint(words[4], 10, 64)
+        if err != nil {
+          return nil, err
+        }
+
+        return AddKitPartCmd{kitId, partId, qty}, nil
       }
     }
 
-    case "delete": {
-      if words[1] == "part" && len(words) >= 3 {
+    case "remove": {
+      if words[1] == "partlink" && len(words) >= 4 {
         partId, err := strconv.ParseInt(words[2], 10, 64)
         if err != nil {
           return nil, err
         }
 
-        return DeletePartCommand{partId}, nil
+        linkId, err := strconv.ParseInt(words[3], 10, 64)
+        if err != nil {
+          return nil, err
+        }
+
+        return RemovePartLinkCmd{partId: partId, linkId: linkId}, nil
+      } else if words[1] == "kitlink" && len(words) >= 4 {
+        kitId, err := strconv.ParseInt(words[2], 10, 64)
+        if err != nil {
+          return nil, err
+        }
+
+        linkId, err := strconv.ParseInt(words[3], 10, 64)
+        if err != nil {
+          return nil, err
+        }
+
+        return RemoveKitLinkCmd{kitId, linkId}, nil
+      } else if words[1] == "kitpart" && len(words) >= 4 {
+        kitId, err := strconv.ParseInt(words[2], 10, 64)
+        if err != nil {
+          return nil, err
+        }
+
+        partId, err := strconv.ParseInt(words[3], 10, 64)
+        if err != nil {
+          return nil, err
+        }
+
+        return RemoveKitPartCmd{kitId, partId}, nil
       }
     }
 
-	}
+    case "set": {
+      if words[1] == "kitpart" && len(words) >= 5 {
+        kitId, err := strconv.ParseInt(words[2], 10, 64)
+        if err != nil {
+          return nil, err
+        }
 
-	return nil, fmt.Errorf("Cannot parse cmd from input (%v)", words)
+        partId, err := strconv.ParseInt(words[3], 10, 64)
+        if err != nil {
+          return nil, err
+        }
+
+        qty, err := strconv.ParseUint(words[4], 10, 64)
+        if err != nil {
+          return nil, err
+        }
+
+        return SetKitPartQuantityCmd{kitId, partId, qty}, nil
+      }
+    }
+
+    case "delete": {
+      if words[1] == "part" && len(words) >= 3 {
+        id, err := strconv.ParseInt(words[2], 10, 64)
+        if err != nil {
+          return nil, err
+        }
+
+        return DeletePartCmd{id}, nil
+      } else if words[1] == "kit" && len(words) >= 3 {
+        id, err := strconv.ParseInt(words[2], 10, 64)
+        if err != nil {
+          return nil, err
+        }
+
+        return DeleteKitCmd{id}, nil
+      }
+    }
+  }
+
+	return nil, CannotParseCommand{input}
 }
 
 func main() {
