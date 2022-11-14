@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sombrerosheep/partsbundler/pkg/core"
 )
 
 type Endpoint struct {
@@ -13,22 +14,27 @@ type Endpoint struct {
 	handler gin.HandlerFunc
 }
 
-var endpoints = []Endpoint {
+var endpoints = []Endpoint{
 	{
 		path:    "/parts",
-		method:  "GET",
+		method:  http.MethodGet,
 		handler: GetAllParts,
 	},
 	{
-    path:    "/kits",
-		method:  "GET",
+		path:    "/kits",
+		method:  http.MethodGet,
 		handler: GetAllKits,
 	},
-  {
-    path: "/parts/:partId",
-    method: "GET",
-    handler: GetPart,
-  },
+	{
+		path:    "/parts/:partId",
+		method:  http.MethodGet,
+		handler: GetPart,
+	},
+	{
+		path:    "/kits/:kitId",
+		method:  http.MethodGet,
+		handler: GetKit,
+	},
 }
 
 func GetAllParts(c *gin.Context) {
@@ -36,6 +42,7 @@ func GetAllParts(c *gin.Context) {
 	parts, err := svc.Parts.GetAll()
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	c.JSON(http.StatusOK, parts)
@@ -47,11 +54,18 @@ func GetPart(c *gin.Context) {
 	id, err := strconv.ParseInt(sid, 10, 64)
 	if err != nil {
 		c.String(http.StatusBadRequest, err.Error())
+		return
 	}
 
 	part, err := svc.Parts.Get(id)
 	if err != nil {
+		if _, ok := err.(core.PartNotFound); ok {
+			c.String(http.StatusNotFound, err.Error())
+			return
+		}
+
 		c.String(http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	c.JSON(http.StatusOK, part)
@@ -62,7 +76,32 @@ func GetAllKits(c *gin.Context) {
 	kits, err := svc.Kits.GetAll()
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	c.JSON(http.StatusOK, kits)
+}
+
+func GetKit(c *gin.Context) {
+	svc := GetBundlerService()
+
+	sid := c.Param("kitId")
+	id, err := strconv.ParseInt(sid, 10, 64)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	kit, err := svc.Kits.Get(id)
+	if err != nil {
+		if _, ok := err.(core.KitNotFound); ok {
+			c.String(http.StatusNotFound, err.Error())
+			return
+		}
+
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, kit)
 }

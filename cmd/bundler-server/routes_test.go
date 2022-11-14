@@ -27,9 +27,9 @@ func Test_GetAllParts(t *testing.T) {
 		bundlerService = mock.StubBundlerService
 		w := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodGet, "/parts", nil)
-		router.ServeHTTP(w, req)
-
 		assert.Nil(t, err)
+
+		router.ServeHTTP(w, req)
 
 		var actualParts []core.Part
 
@@ -42,7 +42,7 @@ func Test_GetAllParts(t *testing.T) {
 }
 
 func Test_GetPart(t *testing.T) {
-	t.Run("should each part", func(t *testing.T) {
+	t.Run("should get each part", func(t *testing.T) {
 		router := CreateStubServer()
 		bundlerService = mock.StubBundlerService
 
@@ -50,9 +50,9 @@ func Test_GetPart(t *testing.T) {
 
 			w := httptest.NewRecorder()
 			req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/parts/%d", v.ID), nil)
-			router.ServeHTTP(w, req)
-
 			assert.Nil(t, err)
+
+			router.ServeHTTP(w, req)
 
 			var part core.Part
 
@@ -63,6 +63,38 @@ func Test_GetPart(t *testing.T) {
 			assert.Equal(t, v, part)
 		}
 	})
+
+	t.Run("should return bad request if partId is invalid", func(t *testing.T) {
+		router := CreateStubServer()
+		bundlerService = mock.StubBundlerService
+
+		w := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/parts/onetwothree", nil)
+
+		assert.Nil(t, err)
+
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("should return PartNotFound when kit does not exist", func(t *testing.T) {
+		router := CreateStubServer()
+		bundlerService = mock.StubBundlerService
+
+    partId := int64(9999)
+
+    w := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/parts/%d", partId), nil)
+
+		assert.Nil(t, err)
+
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+    assert.Equal(t, core.PartNotFound{PartID: partId}.Error(), w.Body.String())
+
+	})
 }
 
 func Test_GetAllKits(t *testing.T) {
@@ -72,9 +104,10 @@ func Test_GetAllKits(t *testing.T) {
 
 		w := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodGet, "/kits", nil)
-		router.ServeHTTP(w, req)
 
 		assert.Nil(t, err)
+
+		router.ServeHTTP(w, req)
 
 		var actualKits []core.Kit
 
@@ -83,5 +116,62 @@ func Test_GetAllKits(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.Equal(t, mock.FakeKits[:], actualKits)
+	})
+}
+
+func Test_GetKit(t *testing.T) {
+	t.Run("should each kit", func(t *testing.T) {
+		router := CreateStubServer()
+		bundlerService = mock.StubBundlerService
+
+		for _, v := range mock.FakeKits {
+
+			w := httptest.NewRecorder()
+			req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/kits/%d", v.ID), nil)
+
+			assert.Nil(t, err)
+
+			router.ServeHTTP(w, req)
+
+			var kit core.Kit
+
+			err = json.Unmarshal(w.Body.Bytes(), &kit)
+
+			assert.Nil(t, err)
+			assert.Equal(t, http.StatusOK, w.Code)
+			assert.Equal(t, v, kit)
+		}
+	})
+
+	t.Run("should return bad request if kitId is invalid", func(t *testing.T) {
+		router := CreateStubServer()
+		bundlerService = mock.StubBundlerService
+
+		w := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/kits/onetwothree", nil)
+
+		assert.Nil(t, err)
+
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("should return KitNotFound when kit does not exist", func(t *testing.T) {
+		router := CreateStubServer()
+		bundlerService = mock.StubBundlerService
+
+    kitId := int64(9999)
+
+    w := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/kits/%d", kitId), nil)
+
+		assert.Nil(t, err)
+
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+    assert.Equal(t, core.KitNotFound{KitID: kitId}.Error(), w.Body.String())
+
 	})
 }
