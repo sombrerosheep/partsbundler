@@ -79,6 +79,16 @@ func (s *stubPartService) New(name string, kind core.PartType) (core.Part, error
 	return part, nil
 }
 
+func (s *stubPartService) Get(partId int64) (core.Part, error) {
+	for _, v := range FakeParts {
+		if v.ID == partId {
+			return v, nil
+		}
+	}
+
+	return core.Part{}, core.PartNotFound{PartID: partId}
+}
+
 func (s *stubPartService) AddLink(partId int64, link string) (core.Link, error) {
 	linkId := linkIdCounter
 	linkIdCounter += 1
