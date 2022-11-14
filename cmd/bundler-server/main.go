@@ -6,38 +6,50 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/sombrerosheep/partsbundler/internal/sqlite"
+	"github.com/sombrerosheep/partsbundler/pkg/service"
 )
 
-const dbPath string = "../../data/partsbundler.db"
+const bundlerDBPath string = "../../data/partsbundler.db"
+
+var bundlerService *service.BundlerService = nil
+
+func InitBundlerService(dbPath string) error {
+	svc, err := sqlite.CreateSqliteService(dbPath)
+	if err != nil {
+		return err
+	}
+
+	bundlerService = svc
+
+	return nil
+}
+
+func GetBundlerService() *service.BundlerService {
+	return bundlerService
+}
+
+func RegisterEndpoints(router *gin.Engine, endpoints []Endpoint) {
+	for _, v := range endpoints {
+		switch v.method {
+		case http.MethodGet:
+			router.GET(v.path, v.handler)
+		default:
+			fmt.Printf("Unsupported method '%s' for endpoint %#v", v.method, v)
+		}
+	}
+}
 
 func main() {
 	fmt.Println("Hello")
 
-	svc, err := sqlite.CreateSqliteService(dbPath)
+	err := InitBundlerService(bundlerDBPath)
 	if err != nil {
-		fmt.Printf("unable to create service: %s", err)
+		fmt.Printf("Error iniializing service: %s\n", err)
 		return
 	}
 
 	router := gin.Default()
-
-	router.GET("/parts", func(c *gin.Context) {
-		parts, err := svc.Parts.GetAll()
-		if err != nil {
-			c.String(http.StatusInternalServerError, err.Error())
-		}
-
-		c.JSON(http.StatusOK, parts)
-	})
-
-	router.GET("/kits", func(c *gin.Context) {
-		kits, err := svc.Kits.GetAll()
-		if err != nil {
-			c.String(http.StatusInternalServerError, err.Error())
-		}
-
-		c.JSON(http.StatusOK, kits)
-	})
+	RegisterEndpoints(router, endpoints)
 
 	err = router.Run(":3000")
 	if err != nil {
