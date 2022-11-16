@@ -35,6 +35,11 @@ var endpoints = []Endpoint{
 		method:  http.MethodGet,
 		handler: GetKit,
 	},
+	{
+		path:    "/kits",
+		method:  http.MethodPost,
+		handler: CreateKit,
+	},
 }
 
 func GetAllParts(c *gin.Context) {
@@ -101,6 +106,26 @@ func GetKit(c *gin.Context) {
 
 		c.String(http.StatusInternalServerError, err.Error())
 		return
+	}
+
+	c.JSON(http.StatusOK, kit)
+}
+
+type KitCreateInput struct {
+	Name      string `json:"name"`
+	Schematic string `json:"schematic"`
+	Diagram   string `json:"diagram"`
+}
+
+func CreateKit(c *gin.Context) {
+	svc := GetBundlerService()
+
+	var input KitCreateInput
+	c.BindJSON(&input)
+
+	kit, err := svc.Kits.New(input.Name, input.Schematic, input.Diagram)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
 	}
 
 	c.JSON(http.StatusOK, kit)
