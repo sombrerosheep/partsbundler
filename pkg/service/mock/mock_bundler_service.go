@@ -114,13 +114,13 @@ func (s *stubKitService) GetAll() ([]core.Kit, error) {
 }
 
 func (s *stubKitService) Get(kitId int64) (core.Kit, error) {
-  for _, v := range FakeKits {
-    if v.ID == kitId {
-      return v, nil
-    }
-  }
+	for _, v := range FakeKits {
+		if v.ID == kitId {
+			return v, nil
+		}
+	}
 
-  return core.Kit{}, core.KitNotFound{KitID: kitId}
+	return core.Kit{}, core.KitNotFound{KitID: kitId}
 }
 
 func (s *stubKitService) GetPartUsage(partId int64) ([]int64, error) {

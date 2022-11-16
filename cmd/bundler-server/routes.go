@@ -21,14 +21,19 @@ var endpoints = []Endpoint{
 		handler: GetAllParts,
 	},
 	{
-		path:    "/kits",
-		method:  http.MethodGet,
-		handler: GetAllKits,
-	},
-	{
 		path:    "/parts/:partId",
 		method:  http.MethodGet,
 		handler: GetPart,
+	},
+	{
+		path:    "/parts",
+		method:  http.MethodPost,
+		handler: CreatePart,
+	},
+	{
+		path:    "/kits",
+		method:  http.MethodGet,
+		handler: GetAllKits,
 	},
 	{
 		path:    "/kits/:kitId",
@@ -76,6 +81,30 @@ func GetPart(c *gin.Context) {
 	c.JSON(http.StatusOK, part)
 }
 
+type CreatePartInput struct {
+	Name string `json:"name"`
+	Kind string `json:"kind"`
+}
+
+func CreatePart(c *gin.Context) {
+	svc := GetBundlerService()
+
+	var input CreatePartInput
+	err := c.BindJSON(&input)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	part, err := svc.Parts.New(input.Name, core.PartType(input.Kind))
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, part)
+}
+
 func GetAllKits(c *gin.Context) {
 	svc := GetBundlerService()
 	kits, err := svc.Kits.GetAll()
@@ -111,7 +140,7 @@ func GetKit(c *gin.Context) {
 	c.JSON(http.StatusOK, kit)
 }
 
-type KitCreateInput struct {
+type CreateKitInput struct {
 	Name      string `json:"name"`
 	Schematic string `json:"schematic"`
 	Diagram   string `json:"diagram"`
@@ -120,7 +149,7 @@ type KitCreateInput struct {
 func CreateKit(c *gin.Context) {
 	svc := GetBundlerService()
 
-	var input KitCreateInput
+	var input CreateKitInput
 	c.BindJSON(&input)
 
 	kit, err := svc.Kits.New(input.Name, input.Schematic, input.Diagram)

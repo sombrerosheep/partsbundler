@@ -16,6 +16,7 @@ import (
 
 func CreateStubServer() *gin.Engine {
 	router := gin.Default()
+	gin.SetMode(gin.TestMode)
 
 	RegisterEndpoints(router, endpoints)
 
@@ -94,6 +95,40 @@ func Test_GetPart(t *testing.T) {
 
 		assert.Equal(t, http.StatusNotFound, w.Code)
 		assert.Equal(t, core.PartNotFound{PartID: partId}.Error(), w.Body.String())
+	})
+}
+
+func Test_CreatePart(t *testing.T) {
+	t.Run("should create part", func(t *testing.T) {
+		router := CreateStubServer()
+		bundlerService = mock.StubBundlerService
+
+		partName := "my part"
+		partKind := "Capacitor"
+
+		input := CreatePartInput{
+			Name: partName,
+			Kind: partKind,
+		}
+		inBytes, err := json.Marshal(input)
+
+		assert.Nil(t, err)
+
+		reqBody := bytes.NewReader(inBytes)
+
+		w := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodPost, "/parts", reqBody)
+
+		assert.Nil(t, err)
+
+		router.ServeHTTP(w, req)
+
+		var part core.Part
+		err = json.Unmarshal(w.Body.Bytes(), &part)
+
+		assert.Nil(t, err)
+		assert.Equal(t, partName, part.Name)
+		assert.Equal(t, partKind, string(part.Kind))
 	})
 }
 
@@ -185,7 +220,7 @@ func Test_CreateKit(t *testing.T) {
 		kitSchem := "example.com/my-schematic"
 		kitDiag := "example.com/my-diag"
 
-		input := KitCreateInput{
+		input := CreateKitInput{
 			Name:      kitName,
 			Schematic: kitSchem,
 			Diagram:   kitDiag,
@@ -202,8 +237,6 @@ func Test_CreateKit(t *testing.T) {
 		assert.Nil(t, err)
 
 		router.ServeHTTP(w, req)
-
-		fmt.Println(string(w.Body.Bytes()))
 
 		var kit core.Kit
 		err = json.Unmarshal(w.Body.Bytes(), &kit)
