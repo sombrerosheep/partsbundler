@@ -182,6 +182,6 @@ func (s *stubKitService) RemovePart(kitId, partId int64) error {
 	return nil
 }
 
-func (s *stubKitService) DeleteKit(kitId int64) error {
+func (s *stubKitService) Delete(kitId int64) error {
 	return nil
 }

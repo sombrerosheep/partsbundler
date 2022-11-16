@@ -341,6 +341,11 @@ func (s *ReplState) DeleteKit(kitId int64) error {
 		return core.KitNotFound{KitID: kitId}
 	}
 
+	err := s.bundler.Kits.Delete(kitId)
+	if err != nil {
+		return err
+	}
+
 	s.kits = append(s.kits[:kitIndex], s.kits[kitIndex+1:]...)
 
 	return nil
