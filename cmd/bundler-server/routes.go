@@ -31,6 +31,11 @@ var endpoints = []Endpoint{
 		handler: CreatePart,
 	},
 	{
+		path:    "/parts/:partId",
+		method:  http.MethodDelete,
+		handler: DeletePart,
+	},
+	{
 		path:    "/kits",
 		method:  http.MethodGet,
 		handler: GetAllKits,
@@ -44,6 +49,11 @@ var endpoints = []Endpoint{
 		path:    "/kits",
 		method:  http.MethodPost,
 		handler: CreateKit,
+	},
+	{
+		path:    "/kits/:kitId",
+		method:  http.MethodDelete,
+		handler: DeleteKit,
 	},
 }
 
@@ -105,6 +115,24 @@ func CreatePart(c *gin.Context) {
 	c.JSON(http.StatusOK, part)
 }
 
+func DeletePart(c *gin.Context) {
+	svc := GetBundlerService()
+	partId := c.Param("partId")
+
+	id, err := strconv.ParseInt(partId, 10, 64)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err = svc.Parts.Delete(id)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
 func GetAllKits(c *gin.Context) {
 	svc := GetBundlerService()
 	kits, err := svc.Kits.GetAll()
@@ -158,4 +186,23 @@ func CreateKit(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, kit)
+}
+
+func DeleteKit(c *gin.Context) {
+	svc := GetBundlerService()
+	kitId := c.Param("kitId")
+
+	id, err := strconv.ParseInt(kitId, 10, 64)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err = svc.Kits.Delete(id)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }

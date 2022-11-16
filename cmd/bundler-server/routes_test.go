@@ -132,6 +132,24 @@ func Test_CreatePart(t *testing.T) {
 	})
 }
 
+func Test_DeletePart(t *testing.T) {
+	t.Run("should delete part", func(t *testing.T) {
+		router := CreateStubServer()
+		bundlerService = mock.StubBundlerService
+
+		partId := int64(3)
+
+		w := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("/parts/%d", partId), nil)
+
+		assert.Nil(t, err)
+
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNoContent, w.Result().StatusCode)
+	})
+}
+
 func Test_GetAllKits(t *testing.T) {
 	t.Run("should return kits", func(t *testing.T) {
 		router := CreateStubServer()
@@ -246,5 +264,23 @@ func Test_CreateKit(t *testing.T) {
 		assert.Equal(t, kitName, kit.Name)
 		assert.Equal(t, kitSchem, kit.Schematic)
 		assert.Equal(t, kitDiag, kit.Diagram)
+	})
+}
+
+func Test_DeleteKit(t *testing.T) {
+	t.Run("should delete kit", func(t *testing.T) {
+		router := CreateStubServer()
+		bundlerService = mock.StubBundlerService
+
+		kitId := int64(7777)
+
+		w := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("/kits/%d", kitId), nil)
+
+		assert.Nil(t, err)
+
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNoContent, w.Result().StatusCode)
 	})
 }

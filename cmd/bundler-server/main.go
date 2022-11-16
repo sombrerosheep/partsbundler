@@ -35,6 +35,8 @@ func RegisterEndpoints(router *gin.Engine, endpoints []Endpoint) {
 			router.GET(v.path, v.handler)
 		case http.MethodPost:
 			router.POST(v.path, v.handler)
+		case http.MethodDelete:
+			router.DELETE(v.path, v.handler)
 		default:
 			fmt.Printf("Unsupported method '%s' for endpoint %#v", v.method, v)
 		}
