@@ -76,8 +76,8 @@ func (db sqlitedb) GetPart(partId int64) (core.Part, error) {
 	row := db.db.QueryRow(query, partId)
 	err := row.Scan(&part.ID, &part.Name, &part.Kind)
 
-	if err == sql.ErrNoRows {
-		err = nil
+	if err != nil && err == sql.ErrNoRows {
+		return part, core.PartNotFound{PartID: partId}
 	}
 
 	return part, err
@@ -98,7 +98,14 @@ func (db sqlitedb) GetAllParts() ([]core.Part, error) {
 		part := core.Part{}
 
 		// handle no rows err
-		rows.Scan(&part.ID, &part.Name, &part.Kind)
+		err := rows.Scan(&part.ID, &part.Name, &part.Kind)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return parts, nil
+			}
+
+			return nil, err
+		}
 
 		parts = append(parts, part)
 	}
@@ -113,6 +120,11 @@ func (db sqlitedb) GetPartLinks(partId int64) ([]core.Link, error) {
 	`
 	links := []core.Link{}
 
+	_, err := db.GetPart(partId)
+	if err != nil {
+		return nil, err
+	}
+
 	rows, err := db.db.Query(query, partId)
 	if err != nil {
 		return nil, err
@@ -123,7 +135,11 @@ func (db sqlitedb) GetPartLinks(partId int64) ([]core.Link, error) {
 
 		err := rows.Scan(&link.ID, &link.URL)
 		if err != nil {
-			return nil, nil
+			if err == sql.ErrNoRows {
+				return []core.Link{}, nil
+			}
+
+			return nil, err
 		}
 
 		links = append(links, link)
@@ -132,20 +148,26 @@ func (db sqlitedb) GetPartLinks(partId int64) ([]core.Link, error) {
 	return links, nil
 }
 
+// todo: check other funcs for "does <part/kit> exist"
 func (db sqlitedb) AddLinkToPart(link string, partId int64) (int64, error) {
 	const stmt string = `
 		insert into partlinks(partId, link)
 			values(?, ?)
 	`
 
+	_, err := db.GetPart(partId)
+	if err != nil {
+		return -1, err
+	}
+
 	res, err := db.db.Exec(stmt, partId, link)
 	if err != nil {
-		return -1, nil
+		return -1, err
 	}
 
 	id, err := res.LastInsertId()
 	if err != nil {
-		return -1, nil
+		return -1, err
 	}
 
 	return id, nil
@@ -157,7 +179,12 @@ func (db sqlitedb) RemoveLinkFromPart(linkId, partId int64) error {
 			where id = ? and partId = ?
 	`
 
-	_, err := db.db.Exec(stmt, linkId, partId)
+	_, err := db.GetPart(partId)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.db.Exec(stmt, linkId, partId)
 
 	return err
 }
@@ -190,7 +217,12 @@ func (db sqlitedb) RemovePart(partId int64) error {
 		delete from parts where id = ?
 	`
 
-	_, err := db.db.Exec(stmt, partId)
+	_, err := db.GetPart(partId)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.db.Exec(stmt, partId)
 
 	return err
 }
@@ -206,11 +238,11 @@ func (db sqlitedb) GetKit(kitId int64) (core.Kit, error) {
 
 	err := row.Scan(&kit.ID, &kit.Name, &kit.Schematic, &kit.Diagram)
 
-	if err == sql.ErrNoRows {
-		err = nil
+	if err != nil && err == sql.ErrNoRows {
+		return kit, core.KitNotFound{KitID: kitId}
 	}
 
-	return kit, nil
+	return kit, err
 }
 
 func (db sqlitedb) GetKitPartUsage(partId int64) ([]int64, error) {
@@ -225,9 +257,21 @@ func (db sqlitedb) GetKitPartUsage(partId int64) ([]int64, error) {
 		return nil, err
 	}
 
+	// todo: will .Next be true if there are no rows?
+	//       add a test to find out!
+	// todo: kit existence first
 	for rows.Next() {
 		var id int64
-		rows.Scan(&id)
+		err = rows.Scan(&id)
+
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return []int64{}, nil
+			}
+
+			return nil, err
+		}
+
 		ids = append(ids, id)
 	}
 
@@ -255,7 +299,14 @@ func (db sqlitedb) GetKitPartsForKit(kitId int64) ([]kitPartRef, error) {
 
 	for rows.Next() {
 		part := kitPartRef{}
-		rows.Scan(&part.kitId, &part.partId, &part.quantity)
+		err = rows.Scan(&part.kitId, &part.partId, &part.quantity)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return []kitPartRef{}, nil
+			}
+
+			return nil, err
+		}
 
 		parts = append(parts, part)
 	}
@@ -279,6 +330,10 @@ func (db sqlitedb) GetAllKits() ([]core.Kit, error) {
 
 		err := rows.Scan(&kit.ID, &kit.Name, &kit.Schematic, &kit.Diagram)
 		if err != nil {
+			if err == sql.ErrNoRows {
+				return []core.Kit{}, nil
+			}
+
 			return nil, err
 		}
 
@@ -337,7 +392,14 @@ func (db sqlitedb) GetKitLinks(kitId int64) ([]core.Link, error) {
 	for rows.Next() {
 		link := core.Link{}
 
-		rows.Scan(&link.ID, &link.URL)
+		err = rows.Scan(&link.ID, &link.URL)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return []core.Link{}, nil
+			}
+
+			return nil, err
+		}
 
 		links = append(links, link)
 	}

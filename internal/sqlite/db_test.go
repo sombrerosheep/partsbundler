@@ -60,7 +60,7 @@ func testDbDeferredCleanup(t *testing.T, db *sqlitedb, dbPath string) {
 	}
 }
 
-func TestSqliteParts(t *testing.T) {
+func Test_SqliteParts(t *testing.T) {
 	const dbPath = "./import/dbparttest.db"
 	testdb, err := getTestDbConnection(t, dbPath)
 	if err != nil {
@@ -96,90 +96,147 @@ func TestSqliteParts(t *testing.T) {
 	})
 
 	t.Run("GetPart", func(t *testing.T) {
-		expected := core.Part{
-			ID:    partId,
-			Kind:  partKind,
-			Name:  partName,
-			Links: []core.Link(nil),
-		}
+		t.Run("should return correct part", func(t *testing.T) {
+			expected := core.Part{
+				ID:    partId,
+				Kind:  partKind,
+				Name:  partName,
+				Links: []core.Link(nil),
+			}
 
-		part, err := testdb.GetPart(partId)
+			part, err := testdb.GetPart(partId)
 
-		assert.Nil(t, err)
-		assert.Equal(t, expected, part)
+			assert.Nil(t, err)
+			assert.Equal(t, expected, part)
+		})
+
+		t.Run("should return PartNotFound when part does not exist", func(t *testing.T) {
+			partId := int64(9999)
+
+			_, err := testdb.GetPart(partId)
+
+			assert.NotNil(t, err)
+			assert.IsType(t, core.PartNotFound{}, err)
+			assert.Equal(t, partId, err.(core.PartNotFound).PartID)
+		})
 	})
 
 	t.Run("AddLinkToPart", func(t *testing.T) {
-		lid, err := testdb.AddLinkToPart(testLink, partId)
+		t.Run("should add link to part", func(t *testing.T) {
+			lid, err := testdb.AddLinkToPart(testLink, partId)
 
-		linkId = lid
+			linkId = lid
 
-		assert.Nil(t, err)
-		assert.Greater(t, linkId, int64(0))
+			assert.Nil(t, err)
+			assert.Greater(t, linkId, int64(0))
+		})
+
+		t.Run("should return PartNotFound when part does not exist", func(t *testing.T) {
+			partId := int64(9999)
+
+			_, err := testdb.AddLinkToPart(testLink, partId)
+
+			assert.NotNil(t, err)
+			assert.IsType(t, core.PartNotFound{}, err)
+			assert.Equal(t, partId, err.(core.PartNotFound).PartID)
+		})
 	})
 
 	t.Run("GetPartLinks", func(t *testing.T) {
-		expected := []core.Link{
-			{ID: linkId, URL: testLink},
-		}
-		links, err := testdb.GetPartLinks(partId)
+		t.Run("should return part links", func(t *testing.T) {
+			expected := []core.Link{
+				{ID: linkId, URL: testLink},
+			}
+			links, err := testdb.GetPartLinks(partId)
 
-		assert.Nil(t, err)
-		assert.Equal(t, expected, links)
+			assert.Nil(t, err)
+			assert.Equal(t, expected, links)
+		})
+
+		t.Run("should return PartNotFound when part does not exist", func(t *testing.T) {
+			partId := int64(9999)
+
+			_, err := testdb.GetPartLinks(partId)
+
+			assert.NotNil(t, err)
+			assert.IsType(t, core.PartNotFound{}, err)
+			assert.Equal(t, partId, err.(core.PartNotFound).PartID)
+		})
 	})
 
 	t.Run("RemoveLinkFromPart", func(t *testing.T) {
-		err := testdb.RemoveLinkFromPart(linkId, partId)
+		t.Run("should remove link from part", func(t *testing.T) {
+			err := testdb.RemoveLinkFromPart(linkId, partId)
 
-		assert.Nil(t, err)
+			assert.Nil(t, err)
 
-		links, err := testdb.GetPartLinks(partId)
+			links, err := testdb.GetPartLinks(partId)
 
-		assert.Nil(t, err)
-		assert.Len(t, links, 0)
+			assert.Nil(t, err)
+			assert.Len(t, links, 0)
+		})
+
+		t.Run("should return PartNotFound when part does not exist", func(t *testing.T) {
+			partId := int64(9999)
+
+			err := testdb.RemoveLinkFromPart(int64(1), partId)
+
+			assert.NotNil(t, err)
+			assert.IsType(t, core.PartNotFound{}, err)
+			assert.Equal(t, partId, err.(core.PartNotFound).PartID)
+		})
 	})
 
 	t.Run("RemovePart", func(t *testing.T) {
-		emptyPart := core.Part{
-			ID:    0,
-			Kind:  "",
-			Name:  "",
-			Links: []core.Link(nil),
-		}
-		err := testdb.RemovePart(partId)
+		t.Run("should remove part", func(t *testing.T) {
+			err := testdb.RemovePart(partId)
 
-		assert.Nil(t, err)
+			assert.Nil(t, err)
 
-		part, err := testdb.GetPart(partId)
+			_, err = testdb.GetPart(partId)
 
-		assert.Nil(t, err)
-		assert.Equal(t, emptyPart, part)
+			assert.NotNil(t, err)
+			assert.IsType(t, core.PartNotFound{}, err)
+			assert.Equal(t, partId, err.(core.PartNotFound).PartID)
+		})
+
+		t.Run("should return PartNotFound when part does not exist", func(t *testing.T) {
+			partId := int64(9999)
+
+			err := testdb.RemovePart(partId)
+
+			assert.NotNil(t, err)
+			assert.IsType(t, core.PartNotFound{}, err)
+			assert.Equal(t, partId, err.(core.PartNotFound).PartID)
+		})
 	})
 
 	t.Run("GetAllParts", func(t *testing.T) {
-		expectedParts := []core.Part{
-			{Name: "4.7k", Kind: "Resistor"},
-			{Name: "47uf", Kind: "Capacitor"},
-			{Name: "TL072", Kind: "IC"},
-		}
-
-		for i := range expectedParts {
-			part := &expectedParts[i]
-
-			id, err := testdb.CreatePart(part.Name, part.Kind)
-			if err != nil {
-				t.Fatalf("Error inserting test part (%d:%#v): %s",
-					i, part, err)
+		t.Run("should return all parts", func(t *testing.T) {
+			expectedParts := []core.Part{
+				{Name: "4.7k", Kind: "Resistor"},
+				{Name: "47uf", Kind: "Capacitor"},
+				{Name: "TL072", Kind: "IC"},
 			}
 
-			part.ID = id
-		}
+			for i := range expectedParts {
+				part := &expectedParts[i]
 
-		parts, err := testdb.GetAllParts()
+				id, err := testdb.CreatePart(part.Name, part.Kind)
+				if err != nil {
+					t.Fatalf("Error inserting test part (%d:%#v): %s",
+						i, part, err)
+				}
 
-		assert.Nil(t, err)
-		assert.Len(t, parts, len(expectedParts))
-		assert.Equal(t, expectedParts, parts)
+				part.ID = id
+			}
+
+			parts, err := testdb.GetAllParts()
+
+			assert.Nil(t, err)
+			assert.Len(t, parts, len(expectedParts))
+			assert.Equal(t, expectedParts, parts)
+		})
 	})
 }
 
@@ -191,25 +248,25 @@ func Test_SQLiteKits(t *testing.T) {
 	}
 	defer testDbDeferredCleanup(t, testdb, dbPath)
 
-	t.Run("Kits", func(t *testing.T) {
-		var kitId int64 = 0
-		var linkId int64 = 0
-		const quantity = 7
-		const partId int64 = 42
-		const kitName = "The Burninator"
-		const partName = "4.7k"
-		const partKind = "Resistor"
+	var kitId int64 = 0
+	var linkId int64 = 0
+	const quantity = 7
+	const partId int64 = 42
+	const kitName = "The Burninator"
+	const partName = "4.7k"
+	const partKind = "Resistor"
 
-		t.Run("CreateKit", func(t *testing.T) {
-			kid, err := testdb.CreateKit(kitName, testLink, testLink)
+	t.Run("CreateKit", func(t *testing.T) {
+		kid, err := testdb.CreateKit(kitName, testLink, testLink)
 
-			kitId = kid
+		kitId = kid
 
-			assert.Nil(t, err)
-			assert.Greater(t, kid, int64(0))
-		})
+		assert.Nil(t, err)
+		assert.Greater(t, kid, int64(0))
+	})
 
-		t.Run("GetKit", func(t *testing.T) {
+	t.Run("GetKit", func(t *testing.T) {
+		t.Run("when kit is found", func(t *testing.T) {
 			expectedKit := core.Kit{
 				ID:        kitId,
 				Parts:     []core.KitPart(nil),
@@ -224,140 +281,143 @@ func Test_SQLiteKits(t *testing.T) {
 			assert.Equal(t, kit, expectedKit)
 		})
 
-		t.Run("AddPartToKit", func(t *testing.T) {
-			err := testdb.AddPartToKit(partId, kitId, quantity)
+		t.Run("should return KitNotFound when kit does not exists", func(t *testing.T) {
+			kitId := int64(9999)
+			_, err := testdb.GetKit(kitId)
 
-			assert.Nil(t, err)
+			assert.NotNil(t, err)
+			assert.IsType(t, core.KitNotFound{}, err)
+			assert.Equal(t, kitId, err.(core.KitNotFound).KitID)
 		})
+	})
 
-		t.Run("GetKitPartUsage", func(t *testing.T) {
-			kitIds, err := testdb.GetKitPartUsage(partId)
+	t.Run("AddPartToKit", func(t *testing.T) {
+		err := testdb.AddPartToKit(partId, kitId, quantity)
 
-			assert.Nil(t, err)
-			assert.Len(t, kitIds, 1)
-			assert.Equal(t, []int64{kitId}, kitIds)
-		})
+		assert.Nil(t, err)
+	})
 
-		t.Run("GetPartKitsForKit", func(t *testing.T) {
-			expectedParts := []kitPartRef{
-				{
-					kitId:    kitId,
-					partId:   partId,
-					quantity: quantity,
-				},
-			}
+	t.Run("GetKitPartUsage", func(t *testing.T) {
+		kitIds, err := testdb.GetKitPartUsage(partId)
 
-			partRefs, err := testdb.GetKitPartsForKit(kitId)
+		assert.Nil(t, err)
+		assert.Len(t, kitIds, 1)
+		assert.Equal(t, []int64{kitId}, kitIds)
+	})
 
-			assert.Nil(t, err)
-			assert.Len(t, partRefs, len(expectedParts))
-			assert.Equal(t, partRefs, expectedParts)
-		})
+	t.Run("GetPartKitsForKit", func(t *testing.T) {
+		expectedParts := []kitPartRef{
+			{
+				kitId:    kitId,
+				partId:   partId,
+				quantity: quantity,
+			},
+		}
 
-		t.Run("UpdatePartQuantity", func(t *testing.T) {
-			newquantity := quantity * uint64(2)
-			expectedParts := []kitPartRef{
-				{
-					kitId:    kitId,
-					partId:   partId,
-					quantity: newquantity,
-				},
-			}
+		partRefs, err := testdb.GetKitPartsForKit(kitId)
 
-			err := testdb.UpdatePartQuantity(partId, kitId, newquantity)
+		assert.Nil(t, err)
+		assert.Len(t, partRefs, len(expectedParts))
+		assert.Equal(t, partRefs, expectedParts)
+	})
 
-			assert.Nil(t, err)
+	t.Run("UpdatePartQuantity", func(t *testing.T) {
+		newquantity := quantity * uint64(2)
+		expectedParts := []kitPartRef{
+			{
+				kitId:    kitId,
+				partId:   partId,
+				quantity: newquantity,
+			},
+		}
 
-			partsRefs, err := testdb.GetKitPartsForKit(kitId)
+		err := testdb.UpdatePartQuantity(partId, kitId, newquantity)
 
-			assert.Nil(t, err)
-			assert.Equal(t, partsRefs, expectedParts)
-		})
+		assert.Nil(t, err)
 
-		t.Run("RemovePartsFromKit", func(t *testing.T) {
-			err := testdb.RemovePartFromKit(partId, kitId)
+		partsRefs, err := testdb.GetKitPartsForKit(kitId)
 
-			assert.Nil(t, err)
+		assert.Nil(t, err)
+		assert.Equal(t, partsRefs, expectedParts)
+	})
 
-			partRefs, err := testdb.GetKitPartsForKit(kitId)
+	t.Run("RemovePartsFromKit", func(t *testing.T) {
+		err := testdb.RemovePartFromKit(partId, kitId)
 
-			assert.Nil(t, err)
-			assert.Len(t, partRefs, 0)
-		})
+		assert.Nil(t, err)
 
-		t.Run("AddLinkToKit", func(t *testing.T) {
-			id, err := testdb.AddLinkToKit(testLink, kitId)
+		partRefs, err := testdb.GetKitPartsForKit(kitId)
 
-			linkId = id
+		assert.Nil(t, err)
+		assert.Len(t, partRefs, 0)
+	})
 
-			assert.Nil(t, err)
-			assert.Greater(t, id, int64(0))
-		})
+	t.Run("AddLinkToKit", func(t *testing.T) {
+		id, err := testdb.AddLinkToKit(testLink, kitId)
 
-		t.Run("GetKitLinks", func(t *testing.T) {
-			expectedLink := core.Link{ID: linkId, URL: testLink}
+		linkId = id
 
-			links, err := testdb.GetKitLinks(kitId)
+		assert.Nil(t, err)
+		assert.Greater(t, id, int64(0))
+	})
 
-			assert.Nil(t, err)
-			assert.Equal(t, links[0], expectedLink)
-		})
+	t.Run("GetKitLinks", func(t *testing.T) {
+		expectedLink := core.Link{ID: linkId, URL: testLink}
 
-		t.Run("RemoveLinkFromKit", func(t *testing.T) {
-			err := testdb.RemoveLinkFromKit(linkId, kitId)
+		links, err := testdb.GetKitLinks(kitId)
 
-			assert.Nil(t, err)
+		assert.Nil(t, err)
+		assert.Equal(t, links[0], expectedLink)
+	})
 
-			links, err := testdb.GetKitLinks(kitId)
+	t.Run("RemoveLinkFromKit", func(t *testing.T) {
+		err := testdb.RemoveLinkFromKit(linkId, kitId)
 
-			assert.Nil(t, err)
-			assert.Len(t, links, 0)
-		})
+		assert.Nil(t, err)
 
-		t.Run("RemoveKit", func(t *testing.T) {
-			emptyKit := core.Kit{
-				ID:        0,
-				Parts:     []core.KitPart(nil),
-				Name:      "",
-				Schematic: "",
-				Diagram:   "",
-				Links:     []core.Link(nil),
-			}
+		links, err := testdb.GetKitLinks(kitId)
 
+		assert.Nil(t, err)
+		assert.Len(t, links, 0)
+	})
+
+	t.Run("RemoveKit", func(t *testing.T) {
+		t.Run("should remove kit and return KitNotFound if accessed", func(t *testing.T) {
 			err := testdb.RemoveKit(kitId)
 
 			assert.Nil(t, err)
 
-			kit, err := testdb.GetKit(kitId)
+			_, err = testdb.GetKit(kitId)
 
-			assert.Nil(t, err)
-			assert.Equal(t, kit, emptyKit)
+			assert.NotNil(t, err)
+			assert.IsType(t, core.KitNotFound{}, err)
+			assert.Equal(t, kitId, err.(core.KitNotFound).KitID)
 		})
+	})
 
-		t.Run("GetAllKits", func(t *testing.T) {
-			expectedKits := []core.Kit{
-				{Name: "ts808", Schematic: "schem1", Diagram: "diag1"},
-				{Name: "cheese", Schematic: "schem2", Diagram: "diag2"},
-				{Name: "pulsar", Schematic: "schem3", Diagram: "diag3"},
+	t.Run("GetAllKits", func(t *testing.T) {
+		expectedKits := []core.Kit{
+			{Name: "ts808", Schematic: "schem1", Diagram: "diag1"},
+			{Name: "cheese", Schematic: "schem2", Diagram: "diag2"},
+			{Name: "pulsar", Schematic: "schem3", Diagram: "diag3"},
+		}
+
+		for i := range expectedKits {
+			kit := &expectedKits[i]
+
+			id, err := testdb.CreateKit(kit.Name, kit.Schematic, kit.Diagram)
+			if err != nil {
+				t.Fatalf("Error inserting test kit (%d:%#v): %s",
+					i, kit, err)
 			}
 
-			for i := range expectedKits {
-				kit := &expectedKits[i]
+			kit.ID = id
+		}
 
-				id, err := testdb.CreateKit(kit.Name, kit.Schematic, kit.Diagram)
-				if err != nil {
-					t.Fatalf("Error inserting test kit (%d:%#v): %s",
-						i, kit, err)
-				}
+		kits, err := testdb.GetAllKits()
 
-				kit.ID = id
-			}
-
-			kits, err := testdb.GetAllKits()
-
-			assert.Nil(t, err)
-			assert.Len(t, kits, len(expectedKits))
-			assert.Equal(t, expectedKits, kits)
-		})
+		assert.Nil(t, err)
+		assert.Len(t, kits, len(expectedKits))
+		assert.Equal(t, expectedKits, kits)
 	})
 }
