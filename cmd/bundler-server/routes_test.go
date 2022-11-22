@@ -106,9 +106,9 @@ func Test_CreatePart(t *testing.T) {
 		partName := "my part"
 		partKind := "Capacitor"
 
-		input := CreatePartInput{
+		input := core.Part{
 			Name: partName,
-			Kind: partKind,
+			Kind: core.PartType(partKind),
 		}
 		inBytes, err := json.Marshal(input)
 
@@ -147,6 +147,77 @@ func Test_DeletePart(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusNoContent, w.Result().StatusCode)
+	})
+}
+
+func Test_AddPartLink(t *testing.T) {
+	t.Run("should add link", func(t *testing.T) {
+		router := CreateStubServer()
+		bundlerService = mock.StubBundlerService
+
+		partId := int64(1)
+		newLink := core.Link{
+			URL: "example.com/newlink",
+		}
+
+		buf, err := json.Marshal(newLink)
+
+		assert.Nil(t, err)
+
+		reader := bytes.NewReader(buf)
+
+		w := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("/parts/%d/links", partId), reader)
+
+		assert.Nil(t, err)
+
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var link core.Link
+		err = json.Unmarshal(w.Body.Bytes(), &link)
+
+		assert.Nil(t, err)
+		assert.Greater(t, link.ID, int64(0))
+		assert.Equal(t, newLink.URL, link.URL)
+	})
+
+	t.Run("should return bad request if body is invalid", func(t *testing.T) {
+		router := CreateStubServer()
+		bundlerService = mock.StubBundlerService
+
+		partId := int64(1)
+
+		reader := bytes.NewReader([]byte("{"))
+
+		w := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("/parts/%d/links", partId), reader)
+
+		assert.Nil(t, err)
+
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("should return PartNotFound when part does not exist", func(t *testing.T) {
+		router := CreateStubServer()
+		bundlerService = mock.StubBundlerService
+
+		partId := int64(999)
+
+		reader := bytes.NewReader([]byte("{}"))
+
+		w := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("/parts/%d/links", partId), reader)
+
+		assert.Nil(t, err)
+
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Equal(t, "", w.Body.String())
 	})
 }
 
@@ -238,7 +309,7 @@ func Test_CreateKit(t *testing.T) {
 		kitSchem := "example.com/my-schematic"
 		kitDiag := "example.com/my-diag"
 
-		input := CreateKitInput{
+		input := core.Kit{
 			Name:      kitName,
 			Schematic: kitSchem,
 			Diagram:   kitDiag,

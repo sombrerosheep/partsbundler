@@ -251,10 +251,13 @@ func Test_SQLiteKits(t *testing.T) {
 	var kitId int64 = 0
 	var linkId int64 = 0
 	const quantity = 7
-	const partId int64 = 42
 	const kitName = "The Burninator"
 	const partName = "4.7k"
 	const partKind = "Resistor"
+
+	partId, err := testdb.CreatePart(partName, core.PartType(partKind))
+
+	assert.Nil(t, err)
 
 	t.Run("CreateKit", func(t *testing.T) {
 		kid, err := testdb.CreateKit(kitName, testLink, testLink)
@@ -292,33 +295,94 @@ func Test_SQLiteKits(t *testing.T) {
 	})
 
 	t.Run("AddPartToKit", func(t *testing.T) {
-		err := testdb.AddPartToKit(partId, kitId, quantity)
+		t.Run("should add part to kit", func(t *testing.T) {
+			err := testdb.AddPartToKit(partId, kitId, quantity)
 
-		assert.Nil(t, err)
+			assert.Nil(t, err)
+		})
+
+		t.Run("should return KitNotFound when kit does not exist", func(t *testing.T) {
+			badKitId := int64(9999)
+
+			err := testdb.AddPartToKit(partId, badKitId, quantity)
+
+			assert.NotNil(t, err)
+			assert.IsType(t, core.KitNotFound{}, err)
+			assert.Equal(t, badKitId, err.(core.KitNotFound).KitID)
+		})
+
+		t.Run("should return PartNotFound when part does not exist", func(t *testing.T) {
+			badPartId := int64(9999)
+
+			err := testdb.AddPartToKit(badPartId, kitId, quantity)
+
+			assert.NotNil(t, err)
+			assert.IsType(t, core.PartNotFound{}, err)
+			assert.Equal(t, badPartId, err.(core.PartNotFound).PartID)
+		})
 	})
 
 	t.Run("GetKitPartUsage", func(t *testing.T) {
-		kitIds, err := testdb.GetKitPartUsage(partId)
+		t.Run("should return kitparts", func(t *testing.T) {
+			kitIds, err := testdb.GetKitPartUsage(partId)
 
-		assert.Nil(t, err)
-		assert.Len(t, kitIds, 1)
-		assert.Equal(t, []int64{kitId}, kitIds)
+			assert.Nil(t, err)
+			assert.Len(t, kitIds, 1)
+			assert.Equal(t, []int64{kitId}, kitIds)
+		})
+
+		t.Run("should return PartNotFound when part does not exist", func(t *testing.T) {
+			partId := int64(9999)
+
+			_, err := testdb.GetKitPartUsage(partId)
+
+			assert.NotNil(t, err)
+			assert.IsType(t, core.PartNotFound{}, err)
+			assert.Equal(t, partId, err.(core.PartNotFound).PartID)
+		})
+
+		t.Run("should return an empty list when kit has no parts", func(t *testing.T) {
+			noRefPartId, err := testdb.CreatePart("test", core.PartType("Resistor"))
+
+			assert.Nil(t, err)
+
+			refs, err := testdb.GetKitPartUsage(noRefPartId)
+
+			assert.Nil(t, err)
+			assert.Len(t, refs, 0)
+
+			err = testdb.RemovePart(noRefPartId)
+
+			assert.Nil(t, err)
+		})
 	})
 
 	t.Run("GetPartKitsForKit", func(t *testing.T) {
-		expectedParts := []kitPartRef{
-			{
-				kitId:    kitId,
-				partId:   partId,
-				quantity: quantity,
-			},
-		}
+		t.Run("should return PartKits", func(t *testing.T) {
+			expectedParts := []kitPartRef{
+				{
+					kitId:    kitId,
+					partId:   partId,
+					quantity: quantity,
+				},
+			}
 
-		partRefs, err := testdb.GetKitPartsForKit(kitId)
+			partRefs, err := testdb.GetKitPartsForKit(kitId)
 
-		assert.Nil(t, err)
-		assert.Len(t, partRefs, len(expectedParts))
-		assert.Equal(t, partRefs, expectedParts)
+			assert.Nil(t, err)
+			assert.Len(t, partRefs, len(expectedParts))
+			assert.Equal(t, partRefs, expectedParts)
+		})
+
+		t.Run("should return KitNotFound when kit doesn't exist", func(t *testing.T) {
+			badKitId := int64(9999)
+
+			_, err := testdb.GetKitPartsForKit(badKitId)
+
+			assert.NotNil(t, err)
+			assert.IsType(t, core.KitNotFound{}, err)
+			assert.Equal(t, badKitId, err.(core.KitNotFound).KitID)
+		})
 	})
 
 	t.Run("UpdatePartQuantity", func(t *testing.T) {

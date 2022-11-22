@@ -36,6 +36,11 @@ var endpoints = []Endpoint{
 		handler: DeletePart,
 	},
 	{
+		path:    "/parts/:partId/links",
+		method:  http.MethodPut,
+		handler: AddPartLink,
+	},
+	{
 		path:    "/kits",
 		method:  http.MethodGet,
 		handler: GetAllKits,
@@ -91,15 +96,10 @@ func GetPart(c *gin.Context) {
 	c.JSON(http.StatusOK, part)
 }
 
-type CreatePartInput struct {
-	Name string `json:"name"`
-	Kind string `json:"kind"`
-}
-
 func CreatePart(c *gin.Context) {
 	svc := GetBundlerService()
 
-	var input CreatePartInput
+	var input core.Part
 	err := c.BindJSON(&input)
 	if err != nil {
 		c.String(http.StatusBadRequest, err.Error())
@@ -122,7 +122,6 @@ func DeletePart(c *gin.Context) {
 	id, err := strconv.ParseInt(partId, 10, 64)
 	if err != nil {
 		c.String(http.StatusBadRequest, err.Error())
-		return
 	}
 
 	err = svc.Parts.Delete(id)
@@ -168,16 +167,68 @@ func GetKit(c *gin.Context) {
 	c.JSON(http.StatusOK, kit)
 }
 
-type CreateKitInput struct {
-	Name      string `json:"name"`
-	Schematic string `json:"schematic"`
-	Diagram   string `json:"diagram"`
+func AddPartLink(c *gin.Context) {
+	svc := GetBundlerService()
+
+	sid := c.Param("partId")
+	id, err := strconv.ParseInt(sid, 10, 64)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	var link core.Link
+	err = c.BindJSON(&link)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	newLink, err := svc.Parts.AddLink(id, link.URL)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, newLink)
+}
+
+func RemovePartLink(c *gin.Context) {
+	svc := GetBundlerService()
+
+	sid := c.Param("partId")
+	id, err := strconv.ParseInt(sid, 10, 64)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	var link core.Link
+	err = c.BindJSON(&link)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if link.ID < 1 {
+		c.String(http.StatusBadRequest, "link.ID must not be valide")
+		return
+	}
+
+	err = svc.Parts.RemoveLink(id, link.ID)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+
 }
 
 func CreateKit(c *gin.Context) {
 	svc := GetBundlerService()
 
-	var input CreateKitInput
+	var input core.Kit
 	c.BindJSON(&input)
 
 	kit, err := svc.Kits.New(input.Name, input.Schematic, input.Diagram)

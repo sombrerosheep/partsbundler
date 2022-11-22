@@ -251,7 +251,11 @@ func (db sqlitedb) GetKitPartUsage(partId int64) ([]int64, error) {
 			where partId = ?
 	`
 
-	ids := []int64{}
+	_, err := db.GetPart(partId)
+	if err != nil {
+		return nil, err
+	}
+
 	rows, err := db.db.Query(query, partId)
 	if err != nil {
 		return nil, err
@@ -259,7 +263,7 @@ func (db sqlitedb) GetKitPartUsage(partId int64) ([]int64, error) {
 
 	// todo: will .Next be true if there are no rows?
 	//       add a test to find out!
-	// todo: kit existence first
+	ids := []int64{}
 	for rows.Next() {
 		var id int64
 		err = rows.Scan(&id)
@@ -289,6 +293,11 @@ func (db sqlitedb) GetKitPartsForKit(kitId int64) ([]kitPartRef, error) {
 		select kitId, partId, quantity from kitparts
 			where kitId = ?
 	`
+
+	_, err := db.GetKit(kitId)
+	if err != nil {
+		return nil, err
+	}
 
 	parts := []kitPartRef{}
 
@@ -349,7 +358,17 @@ func (db sqlitedb) AddPartToKit(partId, kitId int64, quantity uint64) error {
 			values(?, ?, ?)
 	`
 
-	_, err := db.db.Exec(stmt, partId, kitId, quantity)
+	_, err := db.GetKit(kitId)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.GetPart(partId)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.db.Exec(stmt, partId, kitId, quantity)
 
 	return err
 }
