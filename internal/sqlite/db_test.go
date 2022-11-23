@@ -464,23 +464,48 @@ func Test_SQLiteKits(t *testing.T) {
 	})
 
 	t.Run("GetKitLinks", func(t *testing.T) {
-		expectedLink := core.Link{ID: linkId, URL: testLink}
+		t.Run("should return kit links", func(t *testing.T) {
 
-		links, err := testdb.GetKitLinks(kitId)
+			expectedLink := core.Link{ID: linkId, URL: testLink}
 
-		assert.Nil(t, err)
-		assert.Equal(t, links[0], expectedLink)
+			links, err := testdb.GetKitLinks(kitId)
+
+			assert.Nil(t, err)
+			assert.Equal(t, links[0], expectedLink)
+		})
+
+		t.Run("should return KitNotFound when kit does not exist", func(t *testing.T) {
+			badKitId := int64(9999)
+
+			_, err := testdb.GetKitLinks(badKitId)
+
+			assert.NotNil(t, err)
+			assert.IsType(t, core.KitNotFound{}, err)
+			assert.Equal(t, badKitId, err.(core.KitNotFound).KitID)
+		})
 	})
 
 	t.Run("RemoveLinkFromKit", func(t *testing.T) {
-		err := testdb.RemoveLinkFromKit(linkId, kitId)
+		t.Run("should remove link from kit", func(t *testing.T) {
+			err := testdb.RemoveLinkFromKit(linkId, kitId)
 
-		assert.Nil(t, err)
+			assert.Nil(t, err)
 
-		links, err := testdb.GetKitLinks(kitId)
+			links, err := testdb.GetKitLinks(kitId)
 
-		assert.Nil(t, err)
-		assert.Len(t, links, 0)
+			assert.Nil(t, err)
+			assert.Len(t, links, 0)
+		})
+
+		t.Run("should return KitNotFound when kit does not exist", func(t *testing.T) {
+			badKitId := int64(9999)
+
+			err := testdb.RemoveLinkFromKit(int64(1), badKitId)
+
+			assert.NotNil(t, err)
+			assert.IsType(t, core.KitNotFound{}, err)
+			assert.Equal(t, badKitId, err.(core.KitNotFound).KitID)
+		})
 	})
 
 	t.Run("RemoveKit", func(t *testing.T) {
@@ -498,28 +523,30 @@ func Test_SQLiteKits(t *testing.T) {
 	})
 
 	t.Run("GetAllKits", func(t *testing.T) {
-		expectedKits := []core.Kit{
-			{Name: "ts808", Schematic: "schem1", Diagram: "diag1"},
-			{Name: "cheese", Schematic: "schem2", Diagram: "diag2"},
-			{Name: "pulsar", Schematic: "schem3", Diagram: "diag3"},
-		}
-
-		for i := range expectedKits {
-			kit := &expectedKits[i]
-
-			id, err := testdb.CreateKit(kit.Name, kit.Schematic, kit.Diagram)
-			if err != nil {
-				t.Fatalf("Error inserting test kit (%d:%#v): %s",
-					i, kit, err)
+		t.Run("should return all kits", func(t *testing.T) {
+			expectedKits := []core.Kit{
+				{Name: "ts808", Schematic: "schem1", Diagram: "diag1"},
+				{Name: "cheese", Schematic: "schem2", Diagram: "diag2"},
+				{Name: "pulsar", Schematic: "schem3", Diagram: "diag3"},
 			}
 
-			kit.ID = id
-		}
+			for i := range expectedKits {
+				kit := &expectedKits[i]
 
-		kits, err := testdb.GetAllKits()
+				id, err := testdb.CreateKit(kit.Name, kit.Schematic, kit.Diagram)
+				if err != nil {
+					t.Fatalf("Error inserting test kit (%d:%#v): %s",
+						i, kit, err)
+				}
 
-		assert.Nil(t, err)
-		assert.Len(t, kits, len(expectedKits))
-		assert.Equal(t, expectedKits, kits)
+				kit.ID = id
+			}
+
+			kits, err := testdb.GetAllKits()
+
+			assert.Nil(t, err)
+			assert.Len(t, kits, len(expectedKits))
+			assert.Equal(t, expectedKits, kits)
+		})
 	})
 }

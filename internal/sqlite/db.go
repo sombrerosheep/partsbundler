@@ -148,7 +148,6 @@ func (db sqlitedb) GetPartLinks(partId int64) ([]core.Link, error) {
 	return links, nil
 }
 
-// todo: check other funcs for "does <part/kit> exist"
 func (db sqlitedb) AddLinkToPart(link string, partId int64) (int64, error) {
 	const stmt string = `
 		insert into partlinks(partId, link)
@@ -261,8 +260,6 @@ func (db sqlitedb) GetKitPartUsage(partId int64) ([]int64, error) {
 		return nil, err
 	}
 
-	// todo: will .Next be true if there are no rows?
-	//       add a test to find out!
 	ids := []int64{}
 	for rows.Next() {
 		var id int64
@@ -412,6 +409,11 @@ func (db sqlitedb) GetKitLinks(kitId int64) ([]core.Link, error) {
 			where kitId = ?
 	`
 
+	_, err := db.GetKit(kitId)
+	if err != nil {
+		return nil, err
+	}
+
 	links := []core.Link{}
 
 	rows, err := db.db.Query(query, kitId)
@@ -467,7 +469,12 @@ func (db sqlitedb) RemoveLinkFromKit(linkId, kitId int64) error {
 			where kitId = ? and id = ?
 	`
 
-	_, err := db.db.Exec(stmt, kitId, linkId)
+	_, err := db.GetKit(kitId)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.db.Exec(stmt, kitId, linkId)
 
 	return err
 }
