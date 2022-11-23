@@ -216,8 +216,8 @@ func Test_AddPartLink(t *testing.T) {
 
 		router.ServeHTTP(w, req)
 
-		assert.Equal(t, http.StatusBadRequest, w.Code)
-		assert.Equal(t, "", w.Body.String())
+		assert.Equal(t, http.StatusNotFound, w.Code)
+		assert.Equal(t, fmt.Sprintf("Part %d not found", partId), w.Body.String())
 	})
 }
 

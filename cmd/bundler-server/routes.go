@@ -177,6 +177,17 @@ func AddPartLink(c *gin.Context) {
 		return
 	}
 
+	_, err = svc.Parts.Get(id)
+	if err != nil {
+		if _, ok := err.(core.PartNotFound); ok {
+			c.String(http.StatusNotFound, err.Error())
+			return
+		}
+
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	var link core.Link
 	err = c.BindJSON(&link)
 	if err != nil {

@@ -90,6 +90,11 @@ func (s *stubPartService) Get(partId int64) (core.Part, error) {
 }
 
 func (s *stubPartService) AddLink(partId int64, link string) (core.Link, error) {
+	_, err := s.Get(partId)
+	if err != nil {
+		return core.Link{}, err
+	}
+
 	linkId := linkIdCounter
 	linkIdCounter += 1
 
