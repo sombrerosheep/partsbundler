@@ -7,116 +7,28 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var exampleKitParts = [...]core.KitPart{
-	{Part: exampleParts[0], Quantity: 1},
-	{Part: exampleParts[1], Quantity: 2},
-	{Part: exampleParts[2], Quantity: 3},
-}
-
-var exampleKits = [...]core.Kit{
-	{
-		ID:        1,
-		Parts:     []core.KitPart{},
-		Name:      "The Alpha",
-		Schematic: "example.com/the-alpha/schematic",
-		Diagram:   "example.com/the-alpha/diagram",
-		Links:     []core.Link{},
-	},
-	{
-		ID:        2,
-		Parts:     []core.KitPart{},
-		Name:      "The Beta",
-		Schematic: "example.com/the-beta/schematic",
-		Diagram:   "example.com/the-beta/diagram",
-		Links:     []core.Link{},
-	},
-}
-
-func (db greenSqliteMock) GetKit(kitId int64) (core.Kit, error) {
-	if kitId <= int64(len(exampleKits)) && kitId > 0 {
-		return exampleKits[kitId-1], nil
-	}
-	return exampleKits[0], nil
-}
-
-func (db greenSqliteMock) GetKitPartsForKit(kitId int64) ([]kitPartRef, error) {
-	refs := []kitPartRef{
-		{kitId: kitId, partId: 1, quantity: 1},
-		{kitId: kitId, partId: 2, quantity: 2},
-		{kitId: kitId, partId: 3, quantity: 3},
-	}
-
-	return refs, nil
-}
-
-func (db greenSqliteMock) GetAllKits() ([]core.Kit, error) {
-	return exampleKits[:], nil
-}
-
-func (db greenSqliteMock) AddPartToKit(partId, kitId int64, quantity uint64) error {
-	return nil
-}
-
-func (db greenSqliteMock) GetKitPartUsage(partId int64) ([]int64, error) {
-	ids := []int64{}
-
-	for _, v := range exampleKits {
-		ids = append(ids, v.ID)
-	}
-
-	return ids, nil
-}
-
-func (db greenSqliteMock) UpdatePartQuantity(partId, kitId int64, quantity uint64) error {
-	return nil
-}
-
-func (db greenSqliteMock) RemovePartFromKit(partId, kitId int64) error {
-	return nil
-}
-
-func (db greenSqliteMock) GetKitLinks(kitId int64) ([]core.Link, error) {
-	return exampleLinks[:], nil
-}
-
-func (db greenSqliteMock) AddLinkToKit(link string, kitId int64) (int64, error) {
-	return 1, nil
-}
-
-func (db greenSqliteMock) RemoveLinkFromKit(linkId, kitId int64) error {
-	return nil
-}
-
-func (db greenSqliteMock) CreateKit(name, schematic, diagram string) (int64, error) {
-	return 1, nil
-}
-
-func (db greenSqliteMock) RemoveKit(kitId int64) error {
-	return nil
-}
-
 func Test_sqlitekitservice_GetAll(t *testing.T) {
 	t.Run("When no errors are returned", func(t *testing.T) {
 		sut := SqliteKitService{
-			db: greenSqliteMock{},
+			db: GreenSqliteMock{},
 			partservice: SqlitePartService{
-				db: greenSqliteMock{},
+				db: GreenSqliteMock{},
 			},
 		}
 
-		expectedKitParts := make([]core.KitPart, len(exampleKitParts))
-		for i := range exampleKitParts {
-			kp := exampleKitParts[i]
-			kp.Part.Links = exampleLinks[:]
+		expectedKitParts := make([]core.KitPart, len(FakeKitParts))
+		for i := range FakeKitParts {
+			kp := FakeKitParts[i]
+			kp.Part.Links = FakeLinks[:]
 
 			expectedKitParts[i] = kp
 		}
 
-		expectedKits := make([]core.Kit, len(exampleKits))
-		for i := range exampleKits {
-			k := exampleKits[i]
+		expectedKits := make([]core.Kit, len(FakeKits))
+		for i := range FakeKits {
+			k := FakeKits[i]
 			k.Parts = expectedKitParts[:]
-			k.Links = exampleLinks[:]
+			k.Links = FakeLinks[:]
 
 			expectedKits[i] = k
 		}
@@ -131,23 +43,23 @@ func Test_sqlitekitservice_GetAll(t *testing.T) {
 func Test_sqlitekitservice_Get(t *testing.T) {
 	t.Run("When no errors are returned", func(t *testing.T) {
 		sut := SqliteKitService{
-			db: greenSqliteMock{},
+			db: GreenSqliteMock{},
 			partservice: SqlitePartService{
-				db: greenSqliteMock{},
+				db: GreenSqliteMock{},
 			},
 		}
 
-		expectedKitParts := make([]core.KitPart, len(exampleKitParts))
-		for i := range exampleKitParts {
-			kp := exampleKitParts[i]
-			kp.Part.Links = exampleLinks[:]
+		expectedKitParts := make([]core.KitPart, len(FakeKitParts))
+		for i := range FakeKitParts {
+			kp := FakeKitParts[i]
+			kp.Part.Links = FakeLinks[:]
 
 			expectedKitParts[i] = kp
 		}
 
-		expectedKit := exampleKits[0]
+		expectedKit := FakeKits[0]
 		expectedKit.Parts = expectedKitParts[:]
-		expectedKit.Links = exampleLinks[:]
+		expectedKit.Links = FakeLinks[:]
 
 		kit, err := sut.Get(expectedKit.ID)
 
@@ -159,15 +71,15 @@ func Test_sqlitekitservice_Get(t *testing.T) {
 func Test_sqlitekitservice_AddLink(t *testing.T) {
 	t.Run("When no errors are returned", func(t *testing.T) {
 		sut := SqliteKitService{
-			db: greenSqliteMock{},
+			db: GreenSqliteMock{},
 			partservice: SqlitePartService{
-				db: greenSqliteMock{},
+				db: GreenSqliteMock{},
 			},
 		}
 
-		expectedLink := exampleLinks[0]
+		expectedLink := FakeLinks[0]
 
-		link, err := sut.AddLink(exampleKits[0].ID, exampleLinks[0].URL)
+		link, err := sut.AddLink(FakeKits[0].ID, FakeLinks[0].URL)
 
 		assert.Nil(t, err)
 		assert.Equal(t, expectedLink, link)
@@ -177,13 +89,13 @@ func Test_sqlitekitservice_AddLink(t *testing.T) {
 func Test_sqlitekitservice_RemoveLink(t *testing.T) {
 	t.Run("When no errors are returned", func(t *testing.T) {
 		sut := SqliteKitService{
-			db: greenSqliteMock{},
+			db: GreenSqliteMock{},
 			partservice: SqlitePartService{
-				db: greenSqliteMock{},
+				db: GreenSqliteMock{},
 			},
 		}
 
-		err := sut.RemoveLink(exampleKits[0].ID, exampleLinks[0].ID)
+		err := sut.RemoveLink(FakeKits[0].ID, FakeLinks[0].ID)
 
 		assert.Nil(t, err)
 	})
@@ -192,15 +104,15 @@ func Test_sqlitekitservice_RemoveLink(t *testing.T) {
 func Test_sqlitekitservice_AddPart(t *testing.T) {
 	t.Run("When no errors are returned", func(t *testing.T) {
 		sut := SqliteKitService{
-			db: greenSqliteMock{},
+			db: GreenSqliteMock{},
 			partservice: SqlitePartService{
-				db: greenSqliteMock{},
+				db: GreenSqliteMock{},
 			},
 		}
 
 		newPartId := int64(999)
 
-		err := sut.AddPart(exampleKits[0].ID, newPartId, 5)
+		err := sut.AddPart(FakeKits[0].ID, newPartId, 5)
 
 		assert.Nil(t, err)
 	})
@@ -209,15 +121,15 @@ func Test_sqlitekitservice_AddPart(t *testing.T) {
 func Test_GetPartUsage(t *testing.T) {
 	t.Run("When no errors are returned", func(t *testing.T) {
 		sut := SqliteKitService{
-			db: greenSqliteMock{},
+			db: GreenSqliteMock{},
 			partservice: SqlitePartService{
-				db: greenSqliteMock{},
+				db: GreenSqliteMock{},
 			},
 		}
 
 		expectedIds := []int64{
-			exampleKits[0].ID,
-			exampleKits[1].ID,
+			FakeKits[0].ID,
+			FakeKits[1].ID,
 		}
 
 		ids, err := sut.GetPartUsage(1)
@@ -230,13 +142,13 @@ func Test_GetPartUsage(t *testing.T) {
 func Test_sqlitekitservice_SetPartQuantity(t *testing.T) {
 	t.Run("When no errors are returned", func(t *testing.T) {
 		sut := SqliteKitService{
-			db: greenSqliteMock{},
+			db: GreenSqliteMock{},
 			partservice: SqlitePartService{
-				db: greenSqliteMock{},
+				db: GreenSqliteMock{},
 			},
 		}
 
-		err := sut.SetPartQuantity(exampleKits[0].ID, exampleParts[0].ID, 42)
+		err := sut.SetPartQuantity(FakeKits[0].ID, FakeParts[0].ID, 42)
 
 		assert.Nil(t, err)
 	})
@@ -245,13 +157,13 @@ func Test_sqlitekitservice_SetPartQuantity(t *testing.T) {
 func Test_sqlitekitservice_RemovePart(t *testing.T) {
 	t.Run("When no errors are returned", func(t *testing.T) {
 		sut := SqliteKitService{
-			db: greenSqliteMock{},
+			db: GreenSqliteMock{},
 			partservice: SqlitePartService{
-				db: greenSqliteMock{},
+				db: GreenSqliteMock{},
 			},
 		}
 
-		err := sut.RemovePart(exampleKits[0].ID, exampleParts[0].ID)
+		err := sut.RemovePart(FakeKits[0].ID, FakeParts[0].ID)
 
 		assert.Nil(t, err)
 	})
@@ -260,18 +172,18 @@ func Test_sqlitekitservice_RemovePart(t *testing.T) {
 func Test_sqlitekitservice_New(t *testing.T) {
 	t.Run("When no errors are returned", func(t *testing.T) {
 		sut := SqliteKitService{
-			db: greenSqliteMock{},
+			db: GreenSqliteMock{},
 			partservice: SqlitePartService{
-				db: greenSqliteMock{},
+				db: GreenSqliteMock{},
 			},
 		}
 
 		expectedKit := core.Kit{
-			ID:        exampleKits[0].ID,
+			ID:        FakeKits[0].ID,
 			Parts:     []core.KitPart{},
-			Name:      exampleKits[0].Name,
-			Schematic: exampleKits[0].Schematic,
-			Diagram:   exampleKits[0].Diagram,
+			Name:      FakeKits[0].Name,
+			Schematic: FakeKits[0].Schematic,
+			Diagram:   FakeKits[0].Diagram,
 			Links:     []core.Link{},
 		}
 
@@ -285,13 +197,13 @@ func Test_sqlitekitservice_New(t *testing.T) {
 func Test_sqlitekitservice_Delete(t *testing.T) {
 	t.Run("When no errors are returned", func(t *testing.T) {
 		sut := SqliteKitService{
-			db: greenSqliteMock{},
+			db: GreenSqliteMock{},
 			partservice: SqlitePartService{
-				db: greenSqliteMock{},
+				db: GreenSqliteMock{},
 			},
 		}
 
-		err := sut.Delete(exampleKits[0].ID)
+		err := sut.Delete(FakeKits[0].ID)
 
 		assert.Nil(t, err)
 	})
