@@ -1,5 +1,8 @@
 name: build artifacts
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
 jobs:
   build-repl:
     runs-on: ubuntu-latest
