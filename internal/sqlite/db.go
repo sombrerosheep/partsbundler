@@ -379,7 +379,18 @@ func (db sqlitedb) UpdatePartQuantity(partId, kitId int64, quantity uint64) erro
 			set quantity = ?
 			where partId = ? and kitId = ?
 	`
-	_, err := db.db.Exec(stmt, quantity, partId, kitId)
+
+	_, err := db.GetPart(partId)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.GetKit(kitId)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.db.Exec(stmt, quantity, partId, kitId)
 
 	return err
 }
@@ -431,6 +442,11 @@ func (db sqlitedb) AddLinkToKit(link string, kitId int64) (int64, error) {
 		insert into kitlinks(kitId, link)
 			values(?, ?)
 	`
+
+	_, err := db.GetKit(kitId)
+	if err != nil {
+		return -1, err
+	}
 
 	res, err := db.db.Exec(stmt, kitId, link)
 	if err != nil {

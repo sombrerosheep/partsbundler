@@ -386,43 +386,81 @@ func Test_SQLiteKits(t *testing.T) {
 	})
 
 	t.Run("UpdatePartQuantity", func(t *testing.T) {
-		newquantity := quantity * uint64(2)
-		expectedParts := []kitPartRef{
-			{
-				kitId:    kitId,
-				partId:   partId,
-				quantity: newquantity,
-			},
-		}
+		t.Run("should update partkit quantity", func(t *testing.T) {
+			newquantity := quantity * uint64(2)
+			expectedParts := []kitPartRef{
+				{
+					kitId:    kitId,
+					partId:   partId,
+					quantity: newquantity,
+				},
+			}
 
-		err := testdb.UpdatePartQuantity(partId, kitId, newquantity)
+			err := testdb.UpdatePartQuantity(partId, kitId, newquantity)
 
-		assert.Nil(t, err)
+			assert.Nil(t, err)
 
-		partsRefs, err := testdb.GetKitPartsForKit(kitId)
+			partsRefs, err := testdb.GetKitPartsForKit(kitId)
 
-		assert.Nil(t, err)
-		assert.Equal(t, partsRefs, expectedParts)
+			assert.Nil(t, err)
+			assert.Equal(t, partsRefs, expectedParts)
+		})
+
+		t.Run("should return PartNotFound when part does not exist", func(t *testing.T) {
+			newquantity := quantity * uint64(2)
+			badPartId := int64(9999)
+
+			err := testdb.UpdatePartQuantity(badPartId, kitId, newquantity)
+
+			assert.NotNil(t, err)
+			assert.IsType(t, core.PartNotFound{}, err)
+			assert.Equal(t, badPartId, err.(core.PartNotFound).PartID)
+		})
+
+		t.Run("should return KitNotFound when kit does not exist", func(t *testing.T) {
+			newquantity := quantity * uint64(2)
+			badKitId := int64(9999)
+
+			err := testdb.UpdatePartQuantity(partId, badKitId, newquantity)
+
+			assert.NotNil(t, err)
+			assert.IsType(t, core.KitNotFound{}, err)
+			assert.Equal(t, badKitId, err.(core.KitNotFound).KitID)
+		})
 	})
 
 	t.Run("RemovePartsFromKit", func(t *testing.T) {
-		err := testdb.RemovePartFromKit(partId, kitId)
+		t.Run("should remove part from kit", func(t *testing.T) {
+			err := testdb.RemovePartFromKit(partId, kitId)
 
-		assert.Nil(t, err)
+			assert.Nil(t, err)
 
-		partRefs, err := testdb.GetKitPartsForKit(kitId)
+			partRefs, err := testdb.GetKitPartsForKit(kitId)
 
-		assert.Nil(t, err)
-		assert.Len(t, partRefs, 0)
+			assert.Nil(t, err)
+			assert.Len(t, partRefs, 0)
+		})
 	})
 
 	t.Run("AddLinkToKit", func(t *testing.T) {
-		id, err := testdb.AddLinkToKit(testLink, kitId)
+		t.Run("should add link to kit", func(t *testing.T) {
+			id, err := testdb.AddLinkToKit(testLink, kitId)
 
-		linkId = id
+			linkId = id
 
-		assert.Nil(t, err)
-		assert.Greater(t, id, int64(0))
+			assert.Nil(t, err)
+			assert.Greater(t, id, int64(0))
+		})
+
+		t.Run("should return KitNotFound when kit does not exist", func(t *testing.T) {
+			badKitId := int64(9999)
+
+			_, err := testdb.AddLinkToKit(testLink, badKitId)
+
+			assert.NotNil(t, err)
+			assert.IsType(t, core.KitNotFound{}, err)
+			assert.Equal(t, badKitId, err.(core.KitNotFound).KitID)
+		})
 	})
 
 	t.Run("GetKitLinks", func(t *testing.T) {
