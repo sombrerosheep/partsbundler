@@ -37,7 +37,7 @@ var endpoints = []Endpoint{
 	},
 	{
 		path:    "/parts/:partId/links",
-		method:  http.MethodPut,
+		method:  http.MethodPost,
 		handler: AddPartLink,
 	},
 	{

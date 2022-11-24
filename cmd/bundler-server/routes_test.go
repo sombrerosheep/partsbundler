@@ -167,7 +167,7 @@ func Test_AddPartLink(t *testing.T) {
 		reader := bytes.NewReader(buf)
 
 		w := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("/parts/%d/links", partId), reader)
+		req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/parts/%d/links", partId), reader)
 
 		assert.Nil(t, err)
 
@@ -192,7 +192,7 @@ func Test_AddPartLink(t *testing.T) {
 		reader := bytes.NewReader([]byte("{"))
 
 		w := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("/parts/%d/links", partId), reader)
+		req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/parts/%d/links", partId), reader)
 
 		assert.Nil(t, err)
 
@@ -210,7 +210,7 @@ func Test_AddPartLink(t *testing.T) {
 		reader := bytes.NewReader([]byte("{}"))
 
 		w := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("/parts/%d/links", partId), reader)
+		req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/parts/%d/links", partId), reader)
 
 		assert.Nil(t, err)
 
