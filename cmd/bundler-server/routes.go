@@ -41,6 +41,11 @@ var endpoints = []Endpoint{
 		handler: AddPartLink,
 	},
 	{
+		path:    "/parts/:partId/links/:linkId",
+		method:  http.MethodDelete,
+		handler: RemovePartLink,
+	},
+	{
 		path:    "/kits",
 		method:  http.MethodGet,
 		handler: GetAllKits,
@@ -122,11 +127,18 @@ func DeletePart(c *gin.Context) {
 	id, err := strconv.ParseInt(partId, 10, 64)
 	if err != nil {
 		c.String(http.StatusBadRequest, err.Error())
+		return
 	}
 
 	err = svc.Parts.Delete(id)
 	if err != nil {
+		if _, ok := err.(core.PartNotFound); ok {
+			c.String(http.StatusNotFound, err.Error())
+			return
+		}
+
 		c.String(http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	c.Status(http.StatusNoContent)
@@ -208,25 +220,25 @@ func RemovePartLink(c *gin.Context) {
 	svc := GetBundlerService()
 
 	sid := c.Param("partId")
-	id, err := strconv.ParseInt(sid, 10, 64)
+	partId, err := strconv.ParseInt(sid, 10, 64)
 	if err != nil {
 		c.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	var link core.Link
-	err = c.BindJSON(&link)
+	sid = c.Param("linkId")
+	linkId, err := strconv.ParseInt(sid, 10, 64)
 	if err != nil {
 		c.String(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if link.ID < 1 {
-		c.String(http.StatusBadRequest, "link.ID must not be valide")
+	if linkId < 1 {
+		c.String(http.StatusBadRequest, "linkId must not be valide")
 		return
 	}
 
-	err = svc.Parts.RemoveLink(id, link.ID)
+	err = svc.Parts.RemoveLink(partId, linkId)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return

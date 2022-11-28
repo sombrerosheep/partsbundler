@@ -221,6 +221,84 @@ func Test_AddPartLink(t *testing.T) {
 	})
 }
 
+func Test_RemovePartLink(t *testing.T) {
+	t.Run("should remove part link", func(t *testing.T) {
+		router := CreateStubServer()
+		bundlerService = mock.StubBundlerService
+
+		part := mock.FakeParts[0]
+		link := part.Links[0]
+
+		w := httptest.NewRecorder()
+		uri := fmt.Sprintf("/parts/%d/links/%d", part.ID, link.ID)
+		req, err := http.NewRequest(http.MethodDelete, uri, nil)
+
+		assert.Nil(t, err)
+
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNoContent, w.Code)
+	})
+
+	t.Run("should return PartNotFound when part does not exist", func(t *testing.T) {
+		router := CreateStubServer()
+		bundlerService = mock.StubBundlerService
+
+		part := mock.FakeParts[0]
+		link := part.Links[0]
+
+		w := httptest.NewRecorder()
+		uri := fmt.Sprintf("/parts/%d/links/%d", part.ID, link.ID)
+		req, err := http.NewRequest(http.MethodDelete, uri, nil)
+
+		assert.Nil(t, err)
+
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNoContent, w.Code)
+	})
+
+	t.Run("should return LinkNotFound when link does not exist", func(t *testing.T) {
+		router := CreateStubServer()
+		bundlerService = mock.StubBundlerService
+
+		part := mock.FakeParts[0]
+		link := part.Links[0]
+
+		w := httptest.NewRecorder()
+		uri := fmt.Sprintf("/parts/%d/links/%d", part.ID, link.ID)
+		req, err := http.NewRequest(http.MethodDelete, uri, nil)
+
+		assert.Nil(t, err)
+
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNoContent, w.Code)
+	})
+}
+
+func Test_RemovePart(t *testing.T) {
+	t.Run("should remove part", func(t *testing.T) {
+		router := CreateStubServer()
+		bundlerService = mock.StubBundlerService
+
+		part := mock.FakeParts[0]
+
+		w := httptest.NewRecorder()
+		uri := fmt.Sprintf("/parts/%d", part.ID)
+		req, err := http.NewRequest(http.MethodDelete, uri, nil)
+
+		assert.Nil(t, err)
+
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNoContent, w.Code)
+	})
+}
+
+/////////////////////////
+// Kit Tests
+
 func Test_GetAllKits(t *testing.T) {
 	t.Run("should return kits", func(t *testing.T) {
 		router := CreateStubServer()
