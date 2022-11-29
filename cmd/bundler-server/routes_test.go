@@ -433,3 +433,74 @@ func Test_DeleteKit(t *testing.T) {
 		assert.Equal(t, http.StatusNoContent, w.Result().StatusCode)
 	})
 }
+
+func Test_AddKitLink(t *testing.T) {
+	t.Run("should add link", func(t *testing.T) {
+		router := CreateStubServer()
+		bundlerService = mock.StubBundlerService
+
+		kitId := mock.FakeKits[0].ID
+		newLink := core.Link{
+			URL: "example.com/newlink",
+		}
+
+		buf, err := json.Marshal(newLink)
+
+		assert.Nil(t, err)
+
+		reader := bytes.NewReader(buf)
+
+		w := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/kits/%d/links", kitId), reader)
+
+		router.ServeHTTP(w, req)
+
+		assert.Nil(t, err)
+
+		var link core.Link
+		err = json.Unmarshal(w.Body.Bytes(), &link)
+
+		assert.Nil(t, err)
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, newLink.URL, link.URL)
+		assert.Greater(t, link.ID, int64(0))
+	})
+
+	t.Run("should return BadRequest if body is invalid", func(t *testing.T) {
+		router := CreateStubServer()
+		bundlerService = mock.StubBundlerService
+
+		kitId := mock.FakeKits[0].ID
+
+		reader := bytes.NewReader([]byte("{"))
+
+		w := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/kits/%d/links", kitId), reader)
+
+		router.ServeHTTP(w, req)
+
+		assert.Nil(t, err)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("should return KitNotFound if kit does not exist", func(t *testing.T) {
+		router := CreateStubServer()
+		bundlerService = mock.StubBundlerService
+
+		kitId := int64(9999)
+
+		reader := bytes.NewReader([]byte("{}"))
+
+		w := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/kits/%d/links", kitId), reader)
+
+		assert.Nil(t, err)
+
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+		assert.Equal(t, fmt.Sprintf("Kit %d not found", kitId), w.Body.String())
+	})
+}
+
+// part not found if not exist

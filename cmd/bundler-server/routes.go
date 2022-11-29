@@ -65,6 +65,11 @@ var endpoints = []Endpoint{
 		method:  http.MethodDelete,
 		handler: DeleteKit,
 	},
+	{
+		path:    "/kits/:kitId/links",
+		method:  http.MethodPost,
+		handler: AddKitLink,
+	},
 }
 
 func GetAllParts(c *gin.Context) {
@@ -274,9 +279,55 @@ func DeleteKit(c *gin.Context) {
 
 	err = svc.Kits.Delete(id)
 	if err != nil {
+		if _, ok := err.(core.KitNotFound); ok {
+			c.String(http.StatusNotFound, err.Error())
+			return
+		}
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	c.Status(http.StatusNoContent)
 }
+
+func AddKitLink(c *gin.Context) {
+	svc := GetBundlerService()
+	kitId := c.Param("kitId")
+
+	id, err := strconv.ParseInt(kitId, 10, 64)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	_, err = svc.Kits.Get(id)
+	if err != nil {
+		if _, ok := err.(core.KitNotFound); ok {
+			c.String(http.StatusNotFound, err.Error())
+			return
+		}
+
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	var input core.Link
+	err = c.BindJSON(&input)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	link, err := svc.Kits.AddLink(id, input.URL)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, link)
+}
+
+// todo: Remove Kit Link
+// todo: Add Kit Part
+// todo: Remove Kit Part
+// todo: Update Kit Part Quantity

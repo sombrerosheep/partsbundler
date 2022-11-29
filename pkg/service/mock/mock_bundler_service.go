@@ -160,6 +160,10 @@ func (s *stubKitService) New(name, schematic, diagram string) (core.Kit, error) 
 }
 
 func (s *stubKitService) AddLink(kitId int64, link string) (core.Link, error) {
+	_, err := s.Get(kitId)
+	if err != nil {
+		return core.Link{}, err
+	}
 	linkId := linkIdCounter
 	linkIdCounter += 1
 
