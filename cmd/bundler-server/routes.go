@@ -70,6 +70,26 @@ var endpoints = []Endpoint{
 		method:  http.MethodPost,
 		handler: AddKitLink,
 	},
+	{
+		path:    "/kits/:kitId/links/:linkId",
+		method:  http.MethodDelete,
+		handler: RemoveKitLink,
+	},
+	{
+		path:    "/kits/:kitId/parts/:partId",
+		method:  http.MethodPost,
+		handler: AddKitPart,
+	},
+	{
+		path:    "/kits/:kitId/parts/:partId",
+		method:  http.MethodDelete,
+		handler: RemoveKitPart,
+	},
+	{
+		path:    "/kits/:kitId/parts/:partId/:quantity",
+		method:  http.MethodPut,
+		handler: UpdateKitPartQuantity,
+	},
 }
 
 func GetAllParts(c *gin.Context) {
@@ -327,7 +347,146 @@ func AddKitLink(c *gin.Context) {
 	c.JSON(http.StatusOK, link)
 }
 
-// todo: Remove Kit Link
-// todo: Add Kit Part
+func RemoveKitLink(c *gin.Context) {
+	svc := GetBundlerService()
+
+	sid := c.Param("kitId")
+	kitId, err := strconv.ParseInt(sid, 10, 64)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	sid = c.Param("linkId")
+	linkId, err := strconv.ParseInt(sid, 10, 64)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err = svc.Kits.RemoveLink(kitId, linkId)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+func AddKitPart(c *gin.Context) {
+	svc := GetBundlerService()
+
+	defaultQuantity := uint64(1)
+
+	sid := c.Param("kitId")
+	kitId, err := strconv.ParseInt(sid, 10, 64)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	sid = c.Param("partId")
+	partId, err := strconv.ParseInt(sid, 10, 64)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	sqty := c.Query("quantity")
+	qty, err := strconv.ParseUint(sqty, 10, 64)
+	if err != nil {
+		qty = defaultQuantity
+	}
+
+	err = svc.Kits.AddPart(kitId, partId, qty)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	part, err := svc.Parts.Get(partId)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	kitPart := core.KitPart{
+		Part:     part,
+		Quantity: qty,
+	}
+
+	c.JSON(http.StatusOK, kitPart)
+}
+
 // todo: Remove Kit Part
+func RemoveKitPart(c *gin.Context) {
+	svc := GetBundlerService()
+
+	sid := c.Param("kitId")
+	kitId, err := strconv.ParseInt(sid, 10, 64)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	sid = c.Param("partId")
+	partId, err := strconv.ParseInt(sid, 10, 64)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err = svc.Kits.RemovePart(kitId, partId)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
 // todo: Update Kit Part Quantity
+func UpdateKitPartQuantity(c *gin.Context) {
+	svc := GetBundlerService()
+
+	sid := c.Param("kitId")
+	kitId, err := strconv.ParseInt(sid, 10, 64)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	sid = c.Param("partId")
+	partId, err := strconv.ParseInt(sid, 10, 64)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	sid = c.Param("quantity")
+	quantity, err := strconv.ParseUint(sid, 10, 64)
+	if err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err = svc.Kits.SetPartQuantity(kitId, partId, quantity)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	part, err := svc.Parts.Get(partId)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	kitPart := core.KitPart{
+		Part:     part,
+		Quantity: quantity,
+	}
+
+	c.JSON(http.StatusOK, kitPart)
+
+}

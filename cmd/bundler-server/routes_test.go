@@ -503,4 +503,120 @@ func Test_AddKitLink(t *testing.T) {
 	})
 }
 
-// part not found if not exist
+func Test_RemoveKitLink(t *testing.T) {
+	t.Run("should remove kit link", func(t *testing.T) {
+		router := CreateStubServer()
+		bundlerService = mock.StubBundlerService
+
+		kit := mock.FakeKits[0]
+		link := kit.Links[0]
+
+		w := httptest.NewRecorder()
+		uri := fmt.Sprintf("/kits/%d/links/%d", kit.ID, link.ID)
+		req, err := http.NewRequest(http.MethodDelete, uri, nil)
+
+		assert.Nil(t, err)
+
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNoContent, w.Code)
+	})
+}
+
+func Test_AddKitPart(t *testing.T) {
+	t.Run("should add part to kit", func(t *testing.T) {
+		router := CreateStubServer()
+		bundlerService = mock.StubBundlerService
+
+		kit := mock.FakeKits[0]
+		part := mock.FakeParts[0]
+
+		w := httptest.NewRecorder()
+		uri := fmt.Sprintf("/kits/%d/parts/%d", kit.ID, part.ID)
+		req, err := http.NewRequest(http.MethodPost, uri, nil)
+
+		assert.Nil(t, err)
+
+		router.ServeHTTP(w, req)
+
+		var kitPart core.KitPart
+		err = json.Unmarshal(w.Body.Bytes(), &kitPart)
+
+		assert.Nil(t, err)
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, part.ID, kitPart.ID)
+		assert.Equal(t, uint64(1), kitPart.Quantity)
+	})
+
+	t.Run("should use quantity value from query", func(t *testing.T) {
+		router := CreateStubServer()
+		bundlerService = mock.StubBundlerService
+
+		kit := mock.FakeKits[0]
+		part := mock.FakeParts[0]
+		quantity := uint64(7)
+
+		w := httptest.NewRecorder()
+		uri := fmt.Sprintf("/kits/%d/parts/%d?quantity=%d", kit.ID, part.ID, quantity)
+		req, err := http.NewRequest(http.MethodPost, uri, nil)
+
+		assert.Nil(t, err)
+
+		router.ServeHTTP(w, req)
+
+		var kitPart core.KitPart
+		err = json.Unmarshal(w.Body.Bytes(), &kitPart)
+
+		assert.Nil(t, err)
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, part.ID, kitPart.ID)
+		assert.Equal(t, quantity, kitPart.Quantity)
+	})
+}
+
+func Test_RemoveKitPart(t *testing.T) {
+	t.Run("should remove part from kit", func(t *testing.T) {
+		router := CreateStubServer()
+		bundlerService = mock.StubBundlerService
+
+		kit := mock.FakeKits[0]
+		part := mock.FakeParts[0]
+
+		w := httptest.NewRecorder()
+		uri := fmt.Sprintf("/kits/%d/parts/%d", kit.ID, part.ID)
+		req, err := http.NewRequest(http.MethodDelete, uri, nil)
+
+		assert.Nil(t, err)
+
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNoContent, w.Code)
+	})
+}
+
+func Test_UpdatePartQuantity(t *testing.T) {
+	t.Run("should update part kit quantity", func(t *testing.T) {
+		router := CreateStubServer()
+		bundlerService = mock.StubBundlerService
+
+		kit := mock.FakeKits[0]
+		part := kit.Parts[0]
+		newQty := part.Quantity * 2
+
+		w := httptest.NewRecorder()
+		uri := fmt.Sprintf("/kits/%d/parts/%d/%d", kit.ID, part.ID, newQty)
+		req, err := http.NewRequest(http.MethodPut, uri, nil)
+
+		assert.Nil(t, err)
+
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		kitPart := core.KitPart{}
+		err = json.Unmarshal(w.Body.Bytes(), &kitPart)
+
+		assert.Nil(t, err)
+		assert.Equal(t, newQty, kitPart.Quantity)
+	})
+}
